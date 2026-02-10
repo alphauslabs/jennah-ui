@@ -1,14 +1,14 @@
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-// Placeholder until backend is ready
-const DpfeService = {
-  typeName: "jennah.v1.DpfeService",
-  methods: {
-    submitJob: { name: "SubmitJob", I: Object, O: Object, kind: 0 },
-    listJobs: { name: "ListJobs", I: Object, O: Object, kind: 0 }
+// Mock client for development - will be replaced when backend is ready
+export const client = {
+  submitJob: async (data: any) => {
+    console.warn('Backend not connected - submitJob called with:', data);
+    return { success: false, message: 'Backend not available' };
+  },
+  listJobs: async (data: any) => {
+    console.warn('Backend not connected - listJobs called');
+    return { jobs: [] };
   }
 } as any;
-
-
-export const client = createClient(DpfeService, transport);
