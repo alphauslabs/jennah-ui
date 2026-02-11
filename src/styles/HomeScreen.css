@@ -1,0 +1,111 @@
+
+.landing-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Raleway', system-ui, Arial, sans-serif;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  padding: 48px 0 0 48px;
+  gap: 16px;
+}
+
+.logo-circle {
+  width: 56px;
+  height: 56px;
+  background: #111;
+  border-radius: 50%;
+  margin-right: 16px;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.12);
+}
+
+.logo-text {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #111;
+  letter-spacing: -0.5px;
+  font-family: 'Raleway', system-ui, Arial, sans-serif;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.landing-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.landing-title {
+  font-size: 4rem;
+  font-weight: 800;
+  color: #111;
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.1;
+  font-family: 'Raleway', system-ui, Arial, sans-serif;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.landing-subtitle {
+  font-size: 1.5rem;
+  color: #222;
+  text-align: center;
+  margin-bottom: 48px;
+  font-weight: 400;
+  font-family: 'Raleway', system-ui, Arial, sans-serif;
+  opacity: 0.85;
+}
+
+.landing-cta {
+  background: #111;
+  color: #fff;
+  padding: 18px 48px;
+  border-radius: 999px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  font-family: 'Raleway', system-ui, Arial, sans-serif;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  outline: none;
+  border: none;
+  display: inline-block;
+}
+.landing-cta:hover, .landing-cta:focus {
+  background: #333;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+}
+
+@media (max-width: 600px) {
+  .landing-header {
+    padding: 32px 0 0 16px;
+  }
+  .logo-circle {
+    width: 40px;
+    height: 40px;
+  }
+  .logo-text {
+    font-size: 1.3rem;
+  }
+  .landing-title {
+    font-size: 2.2rem;
+  }
+  .landing-subtitle {
+    font-size: 1rem;
+    margin-bottom: 32px;
+  }
+  .landing-cta {
+    font-size: 1rem;
+    padding: 12px 28px;
+  }
+}

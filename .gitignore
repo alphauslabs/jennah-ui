@@ -33,3 +33,5 @@ build/
 .vscode/
 .idea/
 *.DS_Store
+src/pages/SubmitJobPage.tsx
+src/pages/JobsPage.tsx
