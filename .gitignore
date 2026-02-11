@@ -25,9 +25,9 @@ build/
 # Environment Variables (CRITICAL)
 .env
 .env.local
-.env.development.local
+.env.development
 .env.test.local
-.env.production.local
+.env.production
 
 # Editor directories (Optional but recommended)
 .vscode/

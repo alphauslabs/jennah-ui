@@ -1,5 +1,6 @@
-import { createClient } from "@connectrpc/connect";
+import { createClient} from "@connectrpc/connect";
 import { transport } from "./transport";
+import { DeploymentService } from "../gen/proto/jennah_pb"; 
 
 // Mock client for development - will be replaced when backend is ready
 export const client = {

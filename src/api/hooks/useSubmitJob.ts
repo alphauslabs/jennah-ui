@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { client } from '../client';
+import type { SubmitJobRequest, SubmitJobResponse } from "../../gen/proto/jennah_pb";
 
 export function useSubmitJob() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<SubmitJobResponse | null>(null);
 
-  const submitJob = async (jobData: any) => {
+  const submitJob = async (jobData: SubmitJobRequest) => {
     setLoading(true);
     setError(null);
 
     try {
-      // calls the client's submitJob method with the provided jobData
-      const response = await client.submitJob(jobData);
-      return response;
+      // Cast to select the unary overload explicitly
+      const res = await (client.submitJob as (request: SubmitJobRequest) => Promise<SubmitJobResponse>)(jobData);
+      setResponse(res);
+      return res;
     } catch (err: any) {
-      // error handling for nwtwork or backend issues
-      const errorMessage = err.message || "Failed to connect to Gateway. Is the backend offline?";
-      setError(errorMessage);
-      console.error("SubmitJob Error:", err);
+      setError(err.message || "Failed to submit job");
+      console.error(err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  return { submitJob, loading, error };
+  return { submitJob, response, loading, error };
 }
