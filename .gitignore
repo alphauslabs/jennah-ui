@@ -33,3 +33,8 @@ build/
 .vscode/
 .idea/
 *.DS_Store
+
+service.resolved.yaml
+src/pages/SubmitJobPage.tsx
+src/pages/JobsPage.tsx
+*.DS_Store
