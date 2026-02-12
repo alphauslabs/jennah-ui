@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import Background from '../assets/images/bg/1.png';
-import EmailIcon from '../assets/icons/email.png';
-import KeyIcon from '../assets/icons/key.png';
+import MailIcon from '@mui/icons-material/Mail';
+import { grey } from '@mui/material/colors';
+import PasswordIcon from '@mui/icons-material/Password';
 import RocketImg from '../assets/images/side/rocket.png';
 import AppHeader from '../components/AppHeader';
 
@@ -26,7 +27,7 @@ export default function RegisterPage() {
           <form className="flex flex-col items-start w-full max-w-[480px] mx-auto mb-8 max-[900px]:max-w-[98vw] max-[900px]:items-center max-[600px]:max-w-[98vw] max-[600px]:items-center">
             <label className="text-white text-[1.1rem] font-medium mb-2 self-start font-sans" htmlFor="email">Email Address</label>
             <div className="flex items-center w-full bg-[rgba(255,255,255,0.08)] border-[1.5px] border-white rounded-full mb-6 px-[18px] h-14 max-[600px]:h-11 max-[600px]:px-2">
-              <img src={EmailIcon} alt="Email" className="w-8 h-8 mr-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.12)] max-[600px]:w-6 max-[600px]:h-6 max-[600px]:mr-2" />
+            <MailIcon sx={{ color: grey[100] }} fontSize="medium" className="mr-[10px]"/>
               <input
                 type="email"
                 id="email"
@@ -37,7 +38,7 @@ export default function RegisterPage() {
             </div>
             <label className="text-white text-[1.1rem] font-medium mb-2 self-start font-sans" htmlFor="password">Password</label>
             <div className="flex items-center w-full bg-[rgba(255,255,255,0.08)] border-[1.5px] border-white rounded-full mb-6 px-[18px] h-14 max-[600px]:h-11 max-[600px]:px-2">
-              <img src={KeyIcon} alt="Password" className="w-8 h-8 mr-3 drop-shadow-[0_2px_8px_rgba(0,0,0,0.12)] max-[600px]:w-6 max-[600px]:h-6 max-[600px]:mr-2" />
+              <PasswordIcon sx={{ color: grey[100] }} fontSize="medium" className="mr-[10px]"/>       
               <input
                 type="password"
                 id="password"

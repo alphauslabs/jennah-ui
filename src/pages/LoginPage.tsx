@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom';
 import Background from '../assets/images/bg/2.png';
-// import EmailIcon from '../assets/icons/email.png';
 import MailIcon from '@mui/icons-material/Mail';
 import { grey } from '@mui/material/colors';
-import KeyIcon from '../assets/icons/key.png';
-import AppHeader from '../components/AppHeader';
 import PasswordIcon from '@mui/icons-material/Password';
+import AppHeader from '../components/AppHeader';
 
 export default function LoginPage() {
   return (

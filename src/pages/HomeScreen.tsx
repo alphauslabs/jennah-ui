@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import Background from '../assets/HomeScreen/Background.png';
-import MenuIcon from '../assets/icons/menu.png';
+import Background from '../assets/images/Background.png';
+
 import AppHeader from '../components/AppHeader';
 
 export default function HomeScreen() {
