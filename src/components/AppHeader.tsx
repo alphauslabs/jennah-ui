@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import Logo from '../assets/HomeScreen/Logo.png';
+import Logo from '../assets/images/Logo.png';
 // import MenuIcon from '../assets/icons/menu.png';
 import MenuIcon from '@mui/icons-material/Menu';
 export default function AppHeader() {
