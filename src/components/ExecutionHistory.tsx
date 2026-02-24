@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 const statusMap: Record<string, { className: string; label: string }> = {
   Running: {
@@ -58,12 +60,111 @@ interface ExecutionHistoryProps {
   history: ExecutionHistoryItem[];
 }
 
+type SortColumn = "status" | "jobName" | "user" | "duration" | null;
+type SortDirection = "asc" | "desc";
+
 export function ExecutionHistory({ history }: ExecutionHistoryProps) {
   const navigate = useNavigate();
+  const [sortColumn, setSortColumn] = useState<SortColumn>("duration");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to descending for dates, ascending for text
+      setSortColumn(column);
+      setSortDirection(column === "duration" ? "desc" : "asc");
+    }
+  };
+
+  const sortedHistory = useMemo(() => {
+    if (!sortColumn) return history;
+
+    const sorted = [...history].sort((a, b) => {
+      let aVal: string | number = "";
+      let bVal: string | number = "";
+
+      switch (sortColumn) {
+        case "status":
+          aVal = a.status;
+          bVal = b.status;
+          break;
+        case "jobName":
+          aVal = a.jobName;
+          bVal = b.jobName;
+          break;
+        case "user":
+          aVal = a.user;
+          bVal = b.user;
+          break;
+        case "duration":
+          // Parse relative time for sorting (latest first)
+          const getTime = (str: string): number => {
+            if (str === "just now") return 0;
+            const match = str.match(/(\d+)([mhd])/);
+            if (!match) return Infinity;
+            const [, num, unit] = match;
+            const n = parseInt(num);
+            switch (unit) {
+              case "m":
+                return n * 60;
+              case "h":
+                return n * 3600;
+              case "d":
+                return n * 86400;
+              default:
+                return Infinity;
+            }
+          };
+          aVal = getTime(a.duration);
+          bVal = getTime(b.duration);
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDirection === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      } else {
+        const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        return sortDirection === "asc" ? comparison : -comparison;
+      }
+    });
+
+    return sorted;
+  }, [history, sortColumn, sortDirection]);
 
   const handleView = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
   };
+
+  const SortHeader = ({
+    column,
+    label,
+  }: {
+    column: SortColumn;
+    label: string;
+  }) => (
+    <TableHead
+      onClick={() => handleSort(column)}
+      className="px-6 py-4 text-xs font-semibold text-gray-600 text-left cursor-pointer hover:text-black transition-colors"
+    >
+      <div className="flex items-center gap-2">
+        {label}
+        {sortColumn === column && (
+          sortDirection === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : (
+            <ArrowDown className="w-4 h-4" />
+          )
+        )}
+      </div>
+    </TableHead>
+  );
 
   return (
     <div>
@@ -74,28 +175,20 @@ export function ExecutionHistory({ history }: ExecutionHistoryProps) {
         <Table>
           <TableHeader>
             <TableRow className="border-b border-gray-100 bg-white hover:bg-white">
-              <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-left">
-                Status
-              </TableHead>
-              <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-left">
-                Job Name
-              </TableHead>
+              <SortHeader column="status" label="Status" />
+              <SortHeader column="jobName" label="Job Name" />
               <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-left">
                 Run ID
               </TableHead>
-              <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-left">
-                User
-              </TableHead>
-              <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-left">
-                Duration
-              </TableHead>
+              <SortHeader column="user" label="User" />
+              <SortHeader column="duration" label="Last Run" />
               <TableHead className="px-6 py-4 text-xs font-semibold text-gray-600 text-right">
                 Actions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {history.map((execution) => (
+            {sortedHistory.map((execution) => (
               <TableRow
                 key={execution.id}
                 className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors"

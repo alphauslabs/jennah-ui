@@ -14,6 +14,8 @@ import { NavigationBar } from "../components/NavigationBar";
 import { ExecutionHistory } from "@/components/ExecutionHistory";
 // import { AccountSection } from "@/components/AccountSection";
 import { useListJobs } from "@/api/hooks/useListJobs";
+import { useGetCurrentTenant } from "@/api/hooks/useGetCurrentTenant";
+import { SortByDropdown, type SortOption } from "@/components/SortByDropdown";
 import type { Job as BackendJob } from "@/gen/proto/jennah_pb";
 import type { FilterOptions } from "@/components/FilterPopover";
 
@@ -48,12 +50,13 @@ interface ExecutionHistoryItem {
 }
 
 export default function Jobs() {
-  const [executionHistory] = useState<ExecutionHistoryItem[]>([]);
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
     statuses: [],
     projectNames: [],
   });
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const { fetchJobs, jobs: backendJobs, loading, error } = useListJobs();
+  const { getCurrentTenant, tenant } = useGetCurrentTenant();
 
   // Map backend jobs to UI format
   const jobs: JobWithMetadata[] = (backendJobs || []).map((job: any) => ({
@@ -68,15 +71,70 @@ export default function Jobs() {
     createdAt: job.createdAt || "",
   }));
 
+  // Helper function to normalize status for ExecutionHistory
+  const normalizeStatus = (
+    status: string
+  ): ExecutionHistoryItem["status"] => {
+    const statusMap: Record<
+      string,
+      ExecutionHistoryItem["status"]
+    > = {
+      RUNNING: "Running",
+      COMPLETED: "Completed",
+      PENDING: "Pending",
+      SCHEDULED: "Scheduled",
+      FAILED: "Failed",
+      CANCELLED: "Cancelled",
+    };
+    return statusMap[status] || "Pending";
+  };
+
+  // Helper function to format relative time
+  const formatRelativeTime = (isoString: string): string => {
+    const date = new Date(isoString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Generate ExecutionHistory from jobs, sorted chronologically (latest first)
+  const executionHistory = useMemo(() => {
+    return (backendJobs || [])
+      .map((job: BackendJob) => ({
+        id: job.jobId,
+        status: normalizeStatus(job.status),
+        jobName: job.imageUri || job.jobId,
+        jobId: job.jobId,
+        runId: job.jobId.substring(0, 8),
+        user: tenant?.userEmail || "Unknown",
+        duration: formatRelativeTime(job.createdAt || new Date().toISOString()),
+      }))
+      .sort((a, b) => {
+        // Sort by createdAt in descending order (latest first)
+        const jobA = backendJobs.find((j: BackendJob) => j.jobId === a.jobId);
+        const jobB = backendJobs.find((j: BackendJob) => j.jobId === b.jobId);
+        if (!jobA || !jobB) return 0;
+        return (
+          new Date(jobB.createdAt || 0).getTime() -
+          new Date(jobA.createdAt || 0).getTime()
+        );
+      });
+  }, [backendJobs, tenant]);
+
   // Extract unique projects from jobs
   const availableProjects = useMemo(() => {
     const projects = new Set(jobs.map((job) => job.projectName).filter(Boolean));
     return Array.from(projects).sort();
   }, [jobs]);
 
-  // Apply filters
+  // Apply filters and sorting
   const filteredJobs = useMemo(() => {
-    return jobs.filter((job) => {
+    let filtered = jobs.filter((job) => {
       // If no filters are active, show all jobs
       if (
         activeFilters.statuses.length === 0 &&
@@ -103,7 +161,33 @@ export default function Jobs() {
 
       return true;
     });
-  }, [jobs, activeFilters]);
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.createdAt || 0).getTime() -
+            new Date(b.createdAt || 0).getTime()
+          );
+        case "name-asc":
+          return a.workloadName.localeCompare(b.workloadName);
+        case "name-desc":
+          return b.workloadName.localeCompare(a.workloadName);
+        case "status":
+          return a.status.localeCompare(b.status);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [jobs, activeFilters, sortBy]);
 
   const handleFilterChange = (filters: FilterOptions) => {
     setActiveFilters(filters);
@@ -111,6 +195,7 @@ export default function Jobs() {
 
   useEffect(() => {
     fetchJobs();
+    getCurrentTenant();
   }, []);
 
   return (
@@ -132,6 +217,11 @@ export default function Jobs() {
             activeFilters.statuses.length + activeFilters.projectNames.length
           }
         />
+
+        {/* Sort Control */}
+        <div className="mb-8">
+          <SortByDropdown value={sortBy} onSortChange={setSortBy} />
+        </div>
 
         {loading && (
           <div className="text-center py-10">
