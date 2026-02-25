@@ -37,6 +37,10 @@ export default function Jobs() {
   useEffect(() => {
     getCurrentTenant();
     fetchJobs();
+
+    // Poll every 10 seconds so statuses stay live without a manual refresh
+    const interval = setInterval(() => fetchJobs(), 10_000);
+    return () => clearInterval(interval);
   }, []);
 
   // Filter to only show jobs belonging to the current tenant (client-side safety net)
@@ -140,10 +144,6 @@ export default function Jobs() {
       setSortOrder("desc");
     }
   };
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
