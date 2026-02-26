@@ -1,7 +1,6 @@
 import { Card, CardHeader, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import SettingsIcon from "@mui/icons-material/Settings";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import StopIcon from "@mui/icons-material/Stop";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -95,6 +94,7 @@ function getStatusInfo(status: string): {
 
 export function JobsCard({ job, onCancelled, onDeleted }: JobsCardProps & { onCancelled?: (jobId: string) => void; onDeleted?: (jobId: string) => void }) {
   const [relativeTime, setRelativeTime] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
   const { name, fullPath } = useMemo(
     () => parseImageUri(job.imageUri),
     [job.imageUri],
@@ -119,23 +119,23 @@ export function JobsCard({ job, onCancelled, onDeleted }: JobsCardProps & { onCa
 
   const handleCancel = async () => {
     if (!canCancel) return;
+    setActionError(null);
     try {
       await cancelJob(job.jobId);
-      // Data still persists in DB — just stops the running instance
       onCancelled?.(job.jobId);
-    } catch (err) {
-      console.error("Cancel failed:", err);
+    } catch (err: any) {
+      setActionError(err?.message || "Cancel failed. Job may not be in a cancellable state.");
     }
   };
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete job ${shortJobId}? This will cancel it on GCP Batch and remove it from the database.`)) return;
+    setActionError(null);
     try {
       await deleteJob(job.jobId);
-      // Removed from GCP Batch and database
       onDeleted?.(job.jobId);
-    } catch (err) {
-      console.error("Delete failed:", err);
+    } catch (err: any) {
+      setActionError(err?.message || "Delete failed. Please try again.");
     }
   };
 
@@ -153,6 +153,13 @@ export function JobsCard({ job, onCancelled, onDeleted }: JobsCardProps & { onCa
         <div className="flex items-start justify-between mb-6">
           <Badge className={statusInfo.className}>{statusInfo.label}</Badge>
         </div>
+
+        {/* Action error */}
+        {actionError && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-xs text-red-600">{actionError}</p>
+          </div>
+        )}
 
         {/* Content Rows */}
         <div className="space-y-4">

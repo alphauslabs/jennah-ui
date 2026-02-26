@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { client } from '../client';
-import type { DeleteJobRequest, DeleteJobResponse } from '../../gen/proto/jennah_pb';
+import { create } from '@bufbuild/protobuf';
+import { DeleteJobRequestSchema } from '../../gen/proto/jennah_pb';
+import type { DeleteJobResponse } from '../../gen/proto/jennah_pb';
 
 export function useDeleteJob() {
   const [loading, setLoading] = useState(false);
@@ -12,14 +14,13 @@ export function useDeleteJob() {
     setError(null);
 
     try {
-      const request = { jobId } as DeleteJobRequest;
-
-      const res = await (client.deleteJob as (request: DeleteJobRequest) => Promise<DeleteJobResponse>)(request);
-
+      const request = create(DeleteJobRequestSchema, { jobId });
+      const res = await (client.deleteJob as (request: typeof request) => Promise<DeleteJobResponse>)(request);
       setResponse(res);
       return res;
     } catch (err: any) {
-      setError(err.message || "Failed to delete job.");
+      const msg = err?.message || "Failed to delete job.";
+      setError(msg);
       console.error("DeleteJob Error:", err);
       throw err;
     } finally {

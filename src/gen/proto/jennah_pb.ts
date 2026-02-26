@@ -2,15 +2,15 @@
 // @generated from file proto/jennah.proto (package jennah.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file proto/jennah.proto.
  */
 export const file_proto_jennah: GenFile = /*@__PURE__*/
-  fileDesc("ChJwcm90by9qZW5uYWgucHJvdG8SCWplbm5haC52MSJcChBSZXNvdXJjZU92ZXJyaWRlEhIKCmNwdV9taWxsaXMYASABKAMSEgoKbWVtb3J5X21pYhgCIAEoAxIgChhtYXhfcnVuX2R1cmF0aW9uX3NlY29uZHMYAyABKAMi4wIKEFN1Ym1pdEpvYlJlcXVlc3QSEQoJaW1hZ2VfdXJpGAIgASgJEjoKCGVudl92YXJzGAMgAygLMiguamVubmFoLnYxLlN1Ym1pdEpvYlJlcXVlc3QuRW52VmFyc0VudHJ5EhgKEHJlc291cmNlX3Byb2ZpbGUYBCABKAkSNgoRcmVzb3VyY2Vfb3ZlcnJpZGUYBSABKAsyGy5qZW5uYWgudjEuUmVzb3VyY2VPdmVycmlkZRIMCgRuYW1lGAYgASgJEhQKDG1hY2hpbmVfdHlwZRgHIAEoCRIZChFib290X2Rpc2tfc2l6ZV9nYhgIIAEoAxIUCgx1c2Vfc3BvdF92bXMYCSABKAgSFwoPc2VydmljZV9hY2NvdW50GAogASgJEhAKCGNvbW1hbmRzGAsgAygJGi4KDEVudlZhcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkwKEVN1Ym1pdEpvYlJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFwoPd29ya2VyX2Fzc2lnbmVkGAMgASgJIhEKD0xpc3RKb2JzUmVxdWVzdCIwChBMaXN0Sm9ic1Jlc3BvbnNlEhwKBGpvYnMYASADKAsyDi5qZW5uYWgudjEuSm9iIt8DCgNKb2ISDgoGam9iX2lkGAEgASgJEhEKCXRlbmFudF9pZBgCIAEoCRIRCglpbWFnZV91cmkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSEgoKdXBkYXRlZF9hdBgGIAEoCRIUCgxzY2hlZHVsZWRfYXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIUCgxjb21wbGV0ZWRfYXQYCSABKAkSEwoLcmV0cnlfY291bnQYCiABKAMSEwoLbWF4X3JldHJpZXMYCyABKAMSFQoNZXJyb3JfbWVzc2FnZRgMIAEoCRIaChJnY3BfYmF0Y2hfam9iX25hbWUYDSABKAkSEAoIY29tbWFuZHMYDiADKAkSFQoNZW52X3ZhcnNfanNvbhgPIAEoCRIcChRnY3BfYmF0Y2hfdGFza19ncm91cBgQIAEoCRIMCgRuYW1lGBEgASgJEhgKEHJlc291cmNlX3Byb2ZpbGUYEiABKAkSFAoMbWFjaGluZV90eXBlGBMgASgJEhkKEWJvb3RfZGlza19zaXplX2diGBQgASgDEhQKDHVzZV9zcG90X3ZtcxgVIAEoCBIXCg9zZXJ2aWNlX2FjY291bnQYFiABKAkiGQoXR2V0Q3VycmVudFRlbmFudFJlcXVlc3QibQoYR2V0Q3VycmVudFRlbmFudFJlc3BvbnNlEhEKCXRlbmFudF9pZBgBIAEoCRISCgp1c2VyX2VtYWlsGAIgASgJEhYKDm9hdXRoX3Byb3ZpZGVyGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiIgoQQ2FuY2VsSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkiMwoRQ2FuY2VsSm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCSIiChBEZWxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI0ChFEZWxldGVKb2JSZXNwb25zZRIOCgZqb2JfaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIfCg1HZXRKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5qZW5uYWgudjEuSm9iMswDChFEZXBsb3ltZW50U2VydmljZRJGCglTdWJtaXRKb2ISGy5qZW5uYWgudjEuU3VibWl0Sm9iUmVxdWVzdBocLmplbm5haC52MS5TdWJtaXRKb2JSZXNwb25zZRJDCghMaXN0Sm9icxIaLmplbm5haC52MS5MaXN0Sm9ic1JlcXVlc3QaGy5qZW5uYWgudjEuTGlzdEpvYnNSZXNwb25zZRJbChBHZXRDdXJyZW50VGVuYW50EiIuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXF1ZXN0GiMuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXNwb25zZRJGCglDYW5jZWxKb2ISGy5qZW5uYWgudjEuQ2FuY2VsSm9iUmVxdWVzdBocLmplbm5haC52MS5DYW5jZWxKb2JSZXNwb25zZRJGCglEZWxldGVKb2ISGy5qZW5uYWgudjEuRGVsZXRlSm9iUmVxdWVzdBocLmplbm5haC52MS5EZWxldGVKb2JSZXNwb25zZRI9CgZHZXRKb2ISGC5qZW5uYWgudjEuR2V0Sm9iUmVxdWVzdBoZLmplbm5haC52MS5HZXRKb2JSZXNwb25zZUIyWjBnaXRodWIuY29tL2FscGhhdXNsYWJzL2plbm5haC9nZW4vcHJvdG87amVubmFodjFiBnByb3RvMw");
+  fileDesc("ChJwcm90by9qZW5uYWgucHJvdG8SCWplbm5haC52MSJcChBSZXNvdXJjZU92ZXJyaWRlEhIKCmNwdV9taWxsaXMYASABKAMSEgoKbWVtb3J5X21pYhgCIAEoAxIgChhtYXhfcnVuX2R1cmF0aW9uX3NlY29uZHMYAyABKAMi4wIKEFN1Ym1pdEpvYlJlcXVlc3QSEQoJaW1hZ2VfdXJpGAIgASgJEjoKCGVudl92YXJzGAMgAygLMiguamVubmFoLnYxLlN1Ym1pdEpvYlJlcXVlc3QuRW52VmFyc0VudHJ5EhgKEHJlc291cmNlX3Byb2ZpbGUYBCABKAkSNgoRcmVzb3VyY2Vfb3ZlcnJpZGUYBSABKAsyGy5qZW5uYWgudjEuUmVzb3VyY2VPdmVycmlkZRIMCgRuYW1lGAYgASgJEhQKDG1hY2hpbmVfdHlwZRgHIAEoCRIZChFib290X2Rpc2tfc2l6ZV9nYhgIIAEoAxIUCgx1c2Vfc3BvdF92bXMYCSABKAgSFwoPc2VydmljZV9hY2NvdW50GAogASgJEhAKCGNvbW1hbmRzGAsgAygJGi4KDEVudlZhcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkwKEVN1Ym1pdEpvYlJlc3BvbnNlEg4KBmpvYl9pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFwoPd29ya2VyX2Fzc2lnbmVkGAMgASgJIhEKD0xpc3RKb2JzUmVxdWVzdCIwChBMaXN0Sm9ic1Jlc3BvbnNlEhwKBGpvYnMYASADKAsyDi5qZW5uYWgudjEuSm9iIt8DCgNKb2ISDgoGam9iX2lkGAEgASgJEhEKCXRlbmFudF9pZBgCIAEoCRIRCglpbWFnZV91cmkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSEgoKdXBkYXRlZF9hdBgGIAEoCRIUCgxzY2hlZHVsZWRfYXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIUCgxjb21wbGV0ZWRfYXQYCSABKAkSEwoLcmV0cnlfY291bnQYCiABKAMSEwoLbWF4X3JldHJpZXMYCyABKAMSFQoNZXJyb3JfbWVzc2FnZRgMIAEoCRIaChJnY3BfYmF0Y2hfam9iX25hbWUYDSABKAkSEAoIY29tbWFuZHMYDiADKAkSFQoNZW52X3ZhcnNfanNvbhgPIAEoCRIcChRnY3BfYmF0Y2hfdGFza19ncm91cBgQIAEoCRIMCgRuYW1lGBEgASgJEhgKEHJlc291cmNlX3Byb2ZpbGUYEiABKAkSFAoMbWFjaGluZV90eXBlGBMgASgJEhkKEWJvb3RfZGlza19zaXplX2diGBQgASgDEhQKDHVzZV9zcG90X3ZtcxgVIAEoCBIXCg9zZXJ2aWNlX2FjY291bnQYFiABKAkiGQoXR2V0Q3VycmVudFRlbmFudFJlcXVlc3QibQoYR2V0Q3VycmVudFRlbmFudFJlc3BvbnNlEhEKCXRlbmFudF9pZBgBIAEoCRISCgp1c2VyX2VtYWlsGAIgASgJEhYKDm9hdXRoX3Byb3ZpZGVyGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiIgoQQ2FuY2VsSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkiMwoRQ2FuY2VsSm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCSIiChBEZWxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI0ChFEZWxldGVKb2JSZXNwb25zZRIOCgZqb2JfaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIfCg1HZXRKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5qZW5uYWgudjEuSm9iKosBCg9Db21wbGV4aXR5TGV2ZWwSIAocQ09NUExFWElUWV9MRVZFTF9VTlNQRUNJRklFRBAAEhsKF0NPTVBMRVhJVFlfTEVWRUxfU0lNUExFEAESGwoXQ09NUExFWElUWV9MRVZFTF9NRURJVU0QAhIcChhDT01QTEVYSVRZX0xFVkVMX0NPTVBMRVgQAyqbAQoPQXNzaWduZWRTZXJ2aWNlEiAKHEFTU0lHTkVEX1NFUlZJQ0VfVU5TUEVDSUZJRUQQABIgChxBU1NJR05FRF9TRVJWSUNFX0NMT1VEX1RBU0tTEAESIgoeQVNTSUdORURfU0VSVklDRV9DTE9VRF9SVU5fSk9CEAISIAocQVNTSUdORURfU0VSVklDRV9DTE9VRF9CQVRDSBADMswDChFEZXBsb3ltZW50U2VydmljZRJGCglTdWJtaXRKb2ISGy5qZW5uYWgudjEuU3VibWl0Sm9iUmVxdWVzdBocLmplbm5haC52MS5TdWJtaXRKb2JSZXNwb25zZRJDCghMaXN0Sm9icxIaLmplbm5haC52MS5MaXN0Sm9ic1JlcXVlc3QaGy5qZW5uYWgudjEuTGlzdEpvYnNSZXNwb25zZRJbChBHZXRDdXJyZW50VGVuYW50EiIuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXF1ZXN0GiMuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXNwb25zZRJGCglDYW5jZWxKb2ISGy5qZW5uYWgudjEuQ2FuY2VsSm9iUmVxdWVzdBocLmplbm5haC52MS5DYW5jZWxKb2JSZXNwb25zZRJGCglEZWxldGVKb2ISGy5qZW5uYWgudjEuRGVsZXRlSm9iUmVxdWVzdBocLmplbm5haC52MS5EZWxldGVKb2JSZXNwb25zZRI9CgZHZXRKb2ISGC5qZW5uYWgudjEuR2V0Sm9iUmVxdWVzdBoZLmplbm5haC52MS5HZXRKb2JSZXNwb25zZUIyWjBnaXRodWIuY29tL2FscGhhdXNsYWJzL2plbm5haC9nZW4vcHJvdG87amVubmFodjFiBnByb3RvMw");
 
 /**
  * ResourceOverride allows callers to specify custom compute resource values.
@@ -479,6 +479,82 @@ export type GetJobResponse = Message<"jennah.v1.GetJobResponse"> & {
  */
 export const GetJobResponseSchema: GenMessage<GetJobResponse> = /*@__PURE__*/
   messageDesc(file_proto_jennah, 13);
+
+/**
+ * ComplexityLevel classifies a job by its resource/hardware requirements.
+ * Used by the routing layer to select the appropriate GCP execution service.
+ *
+ * @generated from enum jennah.v1.ComplexityLevel
+ */
+export enum ComplexityLevel {
+  /**
+   * @generated from enum value: COMPLEXITY_LEVEL_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * SIMPLE: no machine type, very low CPU/memory, short duration (<= 10 min).
+   * Routes to Cloud Tasks.
+   *
+   * @generated from enum value: COMPLEXITY_LEVEL_SIMPLE = 1;
+   */
+  SIMPLE = 1,
+
+  /**
+   * MEDIUM: no specific machine type, moderate resources, duration <= 1 hour.
+   * Routes to Cloud Run Jobs.
+   *
+   * @generated from enum value: COMPLEXITY_LEVEL_MEDIUM = 2;
+   */
+  MEDIUM = 2,
+
+  /**
+   * COMPLEX: specific machine type requested, heavy resources, or long duration.
+   * Routes to Cloud Batch.
+   *
+   * @generated from enum value: COMPLEXITY_LEVEL_COMPLEX = 3;
+   */
+  COMPLEX = 3,
+}
+
+/**
+ * Describes the enum jennah.v1.ComplexityLevel.
+ */
+export const ComplexityLevelSchema: GenEnum<ComplexityLevel> = /*@__PURE__*/
+  enumDesc(file_proto_jennah, 0);
+
+/**
+ * AssignedService indicates which GCP execution service will run the job.
+ *
+ * @generated from enum jennah.v1.AssignedService
+ */
+export enum AssignedService {
+  /**
+   * @generated from enum value: ASSIGNED_SERVICE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: ASSIGNED_SERVICE_CLOUD_TASKS = 1;
+   */
+  CLOUD_TASKS = 1,
+
+  /**
+   * @generated from enum value: ASSIGNED_SERVICE_CLOUD_RUN_JOB = 2;
+   */
+  CLOUD_RUN_JOB = 2,
+
+  /**
+   * @generated from enum value: ASSIGNED_SERVICE_CLOUD_BATCH = 3;
+   */
+  CLOUD_BATCH = 3,
+}
+
+/**
+ * Describes the enum jennah.v1.AssignedService.
+ */
+export const AssignedServiceSchema: GenEnum<AssignedService> = /*@__PURE__*/
+  enumDesc(file_proto_jennah, 1);
 
 /**
  * Main service definition for Jennah.

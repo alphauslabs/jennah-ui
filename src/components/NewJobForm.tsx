@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useSubmitJob } from "@/api/hooks/useSubmitJob";
 import { useNavigate } from "react-router-dom";
+import { create } from "@bufbuild/protobuf";
+import { ResourceOverrideSchema, SubmitJobRequestSchema } from "@/gen/proto/jennah_pb";
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -156,19 +158,27 @@ export function NewJobForm() {
       const envVarsMap: Record<string, string> = {};
       envVars.forEach((ev) => { if (ev.key) envVarsMap[ev.key] = ev.value; });
 
-      const machineType = resolveMachineType(computeMethod, preset, customMachine);
+      const resolvedMachineType = resolveMachineType(computeMethod, preset, customMachine);
       const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
 
-      const res = await submitJob({
+      const res = await submitJob(create(SubmitJobRequestSchema, {
+        // jobId intentionally omitted — Gateway generates it
         imageUri: containerImage,
         name: jobName,
-        resourceProfile: machineType,
-        machineType,
+        // resourceProfile = named preset; machineType = resolved GCP machine string
+        resourceProfile: computeMethod === "quick-preset" ? preset : "",
+        machineType: resolvedMachineType,
         envVars: envVarsMap,
-        resourceOverride: {
+        bootDiskSizeGb: BigInt(bootDiskSize),
+        useSpotVms: useSpotVMs,
+        serviceAccount: serviceAccount,
+        commands: [],
+        resourceOverride: create(ResourceOverrideSchema, {
           maxRunDurationSeconds: BigInt(timeoutSeconds),
-        },
-      } as any);
+          cpuMillis: BigInt(0),
+          memoryMib: BigInt(0),
+        }),
+      }));
 
       // Preserve the full UUID returned by the Gateway — never truncate before sending
       const fullJobId = res?.jobId ?? "";

@@ -7,7 +7,6 @@ export interface AuthUser {
   provider: string;
 }
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  // In local dev, oauth2-proxy isn't running — use env var mock user instead
   if (import.meta.env.DEV) {
     const email = import.meta.env.VITE_DEV_EMAIL || "dev@example.com";
     return {

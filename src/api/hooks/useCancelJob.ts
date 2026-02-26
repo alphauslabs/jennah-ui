@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { client } from '../client';
-import type { CancelJobRequest, CancelJobResponse } from '../../gen/proto/jennah_pb';
+import { create } from '@bufbuild/protobuf';
+import { CancelJobRequestSchema } from '../../gen/proto/jennah_pb';
+import type { CancelJobResponse } from '../../gen/proto/jennah_pb';
 
 export function useCancelJob() {
   const [loading, setLoading] = useState(false);
@@ -12,14 +14,13 @@ export function useCancelJob() {
     setError(null);
 
     try {
-      const request = { jobId } as CancelJobRequest;
-
-      const res = await (client.cancelJob as (request: CancelJobRequest) => Promise<CancelJobResponse>)(request);
-
+      const request = create(CancelJobRequestSchema, { jobId });
+      const res = await (client.cancelJob as (request: typeof request) => Promise<CancelJobResponse>)(request);
       setResponse(res);
       return res;
     } catch (err: any) {
-      setError(err.message || "Failed to cancel job. Job may not be in a cancellable state.");
+      const msg = err?.message || "Failed to cancel job. Job may not be in a cancellable state.";
+      setError(msg);
       console.error("CancelJob Error:", err);
       throw err;
     } finally {

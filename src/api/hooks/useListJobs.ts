@@ -12,10 +12,8 @@ export function useListJobs() {
     setError(null);
 
     try {
-      // ListJobsRequest is now empty — tenant is resolved server-side via auth headers
       const request = {} as ListJobsRequest;
 
-      // Cast to select the unary overload
       const response = await (client.listJobs as (request: ListJobsRequest) => Promise<ListJobsResponse>)(request);
 
       setJobs(response.jobs || []);

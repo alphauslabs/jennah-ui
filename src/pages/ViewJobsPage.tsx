@@ -1,18 +1,36 @@
 import { NavigationBar } from "@/components/NavigationBar";
 import { ViewJobForm } from "@/components/ViewJobForm";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useGetJob } from "@/api/hooks/useGetJob";
+
+const ACTIVE_STATUSES = ["PENDING", "SCHEDULED", "RUNNING"];
 
 export default function ViewJob() {
   const { jobId } = useParams<{ jobId: string }>();
   const { fetchJob, job, loading, error } = useGetJob();
   const navigate = useNavigate();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (jobId) fetchJob(jobId);
+    if (!jobId) return;
+    fetchJob(jobId);
   }, [jobId]);
+
+  // Poll every 5s while job is in an active state
+  useEffect(() => {
+    if (!jobId) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    if (job && ACTIVE_STATUSES.includes(job.status)) {
+      intervalRef.current = setInterval(() => fetchJob(jobId), 5_000);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [job?.status, jobId]);
 
   const handleBack = () => navigate(-1);
 
@@ -60,14 +78,22 @@ export default function ViewJob() {
             jobName={job!.name || job!.imageUri.split("/").pop()}
             jobID={job!.jobId}
             containerLink={job!.imageUri}
-            projectDirectory={job!.tenantId}
             status={job!.status as any}
             createdAt={job!.createdAt}
-            selectedResource={
-              job!.machineType
-                ? { name: job!.machineType, vcpu: 0, ram: job!.resourceProfile }
-                : undefined
-            }
+            updatedAt={job!.updatedAt}
+            scheduledAt={job!.scheduledAt}
+            startedAt={job!.startedAt}
+            completedAt={job!.completedAt}
+            errorMessage={job!.errorMessage}
+            gcpBatchJobName={job!.gcpBatchJobName}
+            commands={job!.commands}
+            retryCount={job!.retryCount}
+            maxRetries={job!.maxRetries}
+            machineType={job!.machineType}
+            resourceProfile={job!.resourceProfile}
+            bootDiskSizeGb={job!.bootDiskSizeGb}
+            useSpotVms={job!.useSpotVms}
+            serviceAccount={job!.serviceAccount}
             duration={0}
             envVars={(() => {
               try {
