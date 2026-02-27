@@ -24,43 +24,44 @@ interface EnvVar {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PRESET_MAP: Record<string, string> = {
-  small:  "e2-micro",
-  medium: "e2-standard-4",
-  heavy:  "n1-standard-16",
-  gpu:    "n1-standard-8+gpu",
+// Maps UI preset IDs → API resource_profile strings expected by the Gateway.
+// UI "Heavy" → API "large", UI "GPU" → API "xlarge" (matching API doc spec)
+const PRESET_PROFILE_MAP: Record<string, string> = {
+  small:  "small",
+  medium: "medium",
+  heavy:  "large",
+  gpu:    "xlarge",
 };
 
 const PRESETS = [
-  { id: "small",  label: "Small",  machine: "e2-micro",        desc: "For simple, short-running tasks" },
-  { id: "medium", label: "Medium", machine: "e2-standard-4",   desc: "For most standard workloads" },
-  { id: "heavy",  label: "Heavy",  machine: "n1-standard-16",  desc: "For demanding, high-performance jobs" },
-  { id: "gpu",    label: "GPU",    machine: "n1-standard-8+gpu", desc: "For machine learning and parallel processing" },
+  { id: "small",  label: "Small",  desc: "1 vCPU · 2 GiB · 30 min max" },
+  { id: "medium", label: "Medium", desc: "2 vCPU · 4 GiB · 1 hr max" },
+  { id: "heavy",  label: "Heavy",  desc: "4 vCPU · 8 GiB · 2 hr max" },
+  { id: "gpu",    label: "GPU",    desc: "8 vCPU · 16 GiB · 4 hr max" },
 ];
 
-const CUSTOM_MACHINES = [
-  "e2-micro",
-  "e2-standard-2",
-  "e2-standard-4",
-  "n1-standard-16",
-  "n1-standard-8+gpu",
-];
+// Maps custom machine type selection → cpu_millis and memory_mib for resource_override.
+// The Gateway uses these raw values when no resource_profile is set.
+const MACHINE_RESOURCES: Record<string, { cpuMillis: number; memoryMib: number; label: string }> = {
+  "e2-micro":        { cpuMillis: 250,   memoryMib: 1024,  label: "0.25 vCPU · 1 GiB" },
+  "e2-standard-2":   { cpuMillis: 2000,  memoryMib: 8192,  label: "2 vCPU · 8 GiB" },
+  "e2-standard-4":   { cpuMillis: 4000,  memoryMib: 16384, label: "4 vCPU · 16 GiB" },
+  "n1-standard-16":  { cpuMillis: 16000, memoryMib: 60416, label: "16 vCPU · 60 GiB" },
+  "n1-standard-8+gpu": { cpuMillis: 8000, memoryMib: 30720, label: "8 vCPU · 30 GiB + GPU" },
+};
+
+const CUSTOM_MACHINES = Object.keys(MACHINE_RESOURCES);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Translates form compute selections into a single machine_type string for the backend. */
-function resolveMachineType(method: ComputeMethod, preset: string, custom: string): string {
-  if (method === "quick-preset") return PRESET_MAP[preset] ?? "e2-standard-4";
-  return custom;
-}
-
-/** Combines h/m/s into total seconds for the timeout payload. */
+/** Combines h/m/s into total seconds for resource_override.max_run_duration_seconds. */
 function resolveDurationSeconds(hours: number, minutes: number, seconds: number): number {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-function isGpuMachine(method: ComputeMethod, preset: string, custom: string): boolean {
-  return resolveMachineType(method, preset, custom).includes("gpu");
+function isGpuSelected(method: ComputeMethod, preset: string, custom: string): boolean {
+  if (method === "quick-preset") return preset === "gpu";
+  return custom.includes("gpu");
 }
 
 // ─── Collapsible Section ──────────────────────────────────────────────────────
@@ -125,8 +126,17 @@ export function NewJobForm() {
   const [serviceAccount, setServiceAccount] = useState("");
   const [streamLogs, setStreamLogs] = useState(true);
 
+  // Success state — shown after submit before navigating away
+  const [successInfo, setSuccessInfo] = useState<{
+    jobId: string;
+    workerAssigned: string;
+    complexityLevel: string;
+    assignedService: string;
+    routingReason: string;
+  } | null>(null);
+
   // Derived
-  const gpuSelected = isGpuMachine(computeMethod, preset, customMachine);
+  const gpuSelected = isGpuSelected(computeMethod, preset, customMachine);
   const spotDisabled = gpuSelected;
 
   // ─── Validation ───────────────────────────────────────────────────────────
@@ -158,33 +168,52 @@ export function NewJobForm() {
       const envVarsMap: Record<string, string> = {};
       envVars.forEach((ev) => { if (ev.key) envVarsMap[ev.key] = ev.value; });
 
-      const resolvedMachineType = resolveMachineType(computeMethod, preset, customMachine);
       const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
 
-      const res = await submitJob(create(SubmitJobRequestSchema, {
-        // jobId intentionally omitted — Gateway generates it
-        imageUri: containerImage,
-        name: jobName,
-        // resourceProfile = named preset; machineType = resolved GCP machine string
-        resourceProfile: computeMethod === "quick-preset" ? preset : "",
-        machineType: resolvedMachineType,
-        envVars: envVarsMap,
-        bootDiskSizeGb: BigInt(bootDiskSize),
-        useSpotVms: useSpotVMs,
-        serviceAccount: serviceAccount,
-        commands: [],
-        resourceOverride: create(ResourceOverrideSchema, {
-          maxRunDurationSeconds: BigInt(timeoutSeconds),
-          cpuMillis: BigInt(0),
-          memoryMib: BigInt(0),
-        }),
-      }));
+      let request;
+      if (computeMethod === "quick-preset") {
+        // Preset path: send resource_profile + timeout override only.
+        // CPU/memory come from the preset on the backend side.
+        request = create(SubmitJobRequestSchema, {
+          imageUri: containerImage,
+          name: jobName,
+          envVars: envVarsMap,
+          resourceProfile: PRESET_PROFILE_MAP[preset] ?? "medium",
+          resourceOverride: create(ResourceOverrideSchema, {
+            maxRunDurationSeconds: BigInt(timeoutSeconds),
+            cpuMillis: BigInt(0),
+            memoryMib: BigInt(0),
+          }),
+        });
+      } else {
+        // Custom machine path: convert machine string to raw cpu/memory numbers.
+        // Do not send resource_profile — resource_override takes full precedence.
+        const resources = MACHINE_RESOURCES[customMachine] ?? MACHINE_RESOURCES["e2-standard-4"];
+        request = create(SubmitJobRequestSchema, {
+          imageUri: containerImage,
+          name: jobName,
+          envVars: envVarsMap,
+          resourceOverride: create(ResourceOverrideSchema, {
+            cpuMillis: BigInt(resources.cpuMillis),
+            memoryMib: BigInt(resources.memoryMib),
+            maxRunDurationSeconds: BigInt(timeoutSeconds),
+          }),
+        });
+      }
 
-      // Preserve the full UUID returned by the Gateway — never truncate before sending
+      const res = await submitJob(request);
       const fullJobId = res?.jobId ?? "";
       console.info("Submitted job, full UUID:", fullJobId);
 
-      navigate("/jobs");
+      // Show success banner with routing details, then navigate
+      setSuccessInfo({
+        jobId: fullJobId,
+        workerAssigned: res?.workerAssigned ?? "",
+        complexityLevel: res?.complexityLevel ?? "",
+        assignedService: res?.assignedService ?? "",
+        routingReason: res?.routingReason ?? "",
+      });
+      setTimeout(() => navigate("/jobs"), 4000);
     } catch (err) {
       console.error("Failed to submit job:", err);
     }
@@ -261,12 +290,15 @@ export function NewJobForm() {
               className={`w-full text-sm border rounded-md px-3 py-2 bg-white transition-colors ${computeMethod !== "quick-preset" ? "text-gray-400 cursor-not-allowed" : "text-black"}`}
             >
               {PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>{p.label} — {p.machine}</option>
+                <option key={p.id} value={p.id}>{p.label} — {p.desc}</option>
               ))}
             </select>
             {computeMethod === "quick-preset" && (
               <p className="text-xs text-muted-foreground mt-2">
                 {PRESETS.find((p) => p.id === preset)?.desc}
+                <span className="ml-2 font-mono text-xs bg-gray-100 px-1 rounded">
+                  profile: {PRESET_PROFILE_MAP[preset]}
+                </span>
               </p>
             )}
           </div>
@@ -294,15 +326,18 @@ export function NewJobForm() {
             </select>
             {computeMethod === "custom-machine-type" && (
               <p className="text-xs text-muted-foreground mt-2">
-                Resolved: <code className="font-mono bg-gray-100 px-1 rounded">{customMachine}</code>
+                {MACHINE_RESOURCES[customMachine]?.label ?? customMachine}
               </p>
             )}
           </div>
         </div>
 
-        {/* Resolved machine type preview */}
+        {/* Payload preview */}
         <div className="text-xs text-muted-foreground bg-muted rounded px-3 py-2">
-          Backend will receive: <code className="font-mono text-black">{resolveMachineType(computeMethod, preset, customMachine)}</code>
+          {computeMethod === "quick-preset"
+            ? <>Will send: <code className="font-mono text-black">resource_profile: "{PRESET_PROFILE_MAP[preset]}"</code></>
+            : <>Will send: <code className="font-mono text-black">cpu_millis: {MACHINE_RESOURCES[customMachine]?.cpuMillis}, memory_mib: {MACHINE_RESOURCES[customMachine]?.memoryMib}</code></>
+          }
         </div>
       </Section>
 
@@ -485,14 +520,51 @@ export function NewJobForm() {
 
       {/* ── Submit ── */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm font-semibold text-red-700 mb-1">Submission failed</p>
           <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+      {successInfo && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+          <p className="text-sm font-semibold text-green-700">Job submitted successfully</p>
+          <div className="space-y-1.5 text-xs text-green-800">
+            <div className="flex gap-2">
+              <span className="font-medium w-28 shrink-0">Job ID</span>
+              <span className="font-mono break-all">{successInfo.jobId}</span>
+            </div>
+            {successInfo.workerAssigned && (
+              <div className="flex gap-2">
+                <span className="font-medium w-28 shrink-0">Worker</span>
+                <span className="font-mono">{successInfo.workerAssigned}</span>
+              </div>
+            )}
+            {successInfo.complexityLevel && (
+              <div className="flex gap-2">
+                <span className="font-medium w-28 shrink-0">Complexity</span>
+                <span className="font-mono">{successInfo.complexityLevel}</span>
+              </div>
+            )}
+            {successInfo.assignedService && (
+              <div className="flex gap-2">
+                <span className="font-medium w-28 shrink-0">Routed to</span>
+                <span className="font-mono">{successInfo.assignedService}</span>
+              </div>
+            )}
+            {successInfo.routingReason && (
+              <div className="flex gap-2">
+                <span className="font-medium w-28 shrink-0">Reason</span>
+                <span>{successInfo.routingReason}</span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-green-600">Redirecting to jobs list...</p>
         </div>
       )}
       <div className="flex w-auto pt-2 pb-8">
         <Button
           onClick={handleSubmit}
-          disabled={!jobName.trim() || !containerImage.trim() || loading}
+          disabled={!jobName.trim() || !containerImage.trim() || loading || !!successInfo}
           size="lg"
           className="px-8"
         >

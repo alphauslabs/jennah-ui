@@ -4,7 +4,7 @@ plugins:
   - plugin: buf.build/bufbuild/es
     out: src/gen
     opt: target=ts
-  # Generates the client services (submitJob, listJobs)
+    
   - plugin: buf.build/connectrpc/es
     out: src/gen
     opt: target=ts

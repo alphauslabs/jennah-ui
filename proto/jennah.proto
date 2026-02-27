@@ -81,8 +81,14 @@ message SubmitJobRequest {
 
 message SubmitJobResponse {
   string job_id = 1;
-  string status = 2; 
+  string status = 2;
   string worker_assigned = 3;
+  // Complexity tier assigned by the routing classifier: SIMPLE, MEDIUM, or COMPLEX.
+  string complexity_level = 4;
+  // GCP service assigned to execute this job: CLOUD_TASKS, CLOUD_RUN_JOB, or CLOUD_BATCH.
+  string assigned_service = 5;
+  // Human-readable explanation of why this routing decision was made.
+  string routing_reason = 6;
 }
 
 message ListJobsRequest {
