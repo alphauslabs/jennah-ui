@@ -85,7 +85,7 @@ export default function ViewJob() {
             startedAt={job!.startedAt}
             completedAt={job!.completedAt}
             errorMessage={job!.errorMessage}
-            gcpBatchJobName={job!.gcpBatchJobName}
+            gcpBatchJobPath={job!.gcpBatchJobPath}
             commands={job!.commands}
             retryCount={job!.retryCount}
             maxRetries={job!.maxRetries}
