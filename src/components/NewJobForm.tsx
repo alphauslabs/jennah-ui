@@ -52,6 +52,86 @@ const MACHINE_RESOURCES: Record<string, { cpuMillis: number; memoryMib: number; 
 
 const CUSTOM_MACHINES = Object.keys(MACHINE_RESOURCES);
 
+// Resolved resource values for each preset (matches backend navigator package).
+// Used by the frontend classifier to predict routing tier before submission.
+const PRESET_RESOLVED: Record<string, { cpuMillis: number; memoryMib: number; defaultDurationSeconds: number }> = {
+  small:  { cpuMillis: 1000,  memoryMib: 2048,  defaultDurationSeconds: 1800  },
+  medium: { cpuMillis: 2000,  memoryMib: 4096,  defaultDurationSeconds: 3600  },
+  large:  { cpuMillis: 4000,  memoryMib: 8192,  defaultDurationSeconds: 7200  },
+  xlarge: { cpuMillis: 8000,  memoryMib: 16384, defaultDurationSeconds: 14400 },
+};
+
+// Backend thresholds (router package — mirrors exact values from backend docs)
+const SIMPLE_MAX_CPU   = 500;
+const SIMPLE_MAX_MEM   = 512;
+const SIMPLE_MAX_DUR   = 600;
+const MEDIUM_MAX_CPU   = 4000;
+const MEDIUM_MAX_MEM   = 8192;
+const MEDIUM_MAX_DUR   = 3600;
+
+type RoutingTier = "SIMPLE" | "MEDIUM" | "COMPLEX";
+interface RoutingDecision {
+  tier: RoutingTier;
+  service: "Cloud Tasks" | "Cloud Run Jobs" | "Cloud Batch";
+  reason: string;
+}
+
+/**
+ * Mirrors the backend router package's classification logic.
+ * timeoutSeconds = 0 means "use preset default" — we resolve it for accurate prediction.
+ */
+function classifyRouting(
+  computeMethod: ComputeMethod,
+  preset: string,
+  customMachine: string,
+  timeoutSeconds: number,
+): RoutingDecision {
+  // Any explicit machine_type → COMPLEX regardless of resources
+  if (computeMethod === "custom-machine-type") {
+    const res = MACHINE_RESOURCES[customMachine];
+    return {
+      tier: "COMPLEX",
+      service: "Cloud Batch",
+      reason: `Explicit machine_type "${customMachine}" (${res?.label}) always routes to Cloud Batch.`,
+    };
+  }
+
+  // Preset path — resolve real numbers
+  const resolved = PRESET_RESOLVED[PRESET_PROFILE_MAP[preset]] ?? PRESET_RESOLVED["medium"];
+  const effectiveDuration = timeoutSeconds > 0 ? timeoutSeconds : resolved.defaultDurationSeconds;
+
+  const cpu = resolved.cpuMillis;
+  const mem = resolved.memoryMib;
+  const dur = effectiveDuration;
+
+  if (cpu <= SIMPLE_MAX_CPU && mem <= SIMPLE_MAX_MEM && dur <= SIMPLE_MAX_DUR) {
+    return {
+      tier: "SIMPLE",
+      service: "Cloud Tasks",
+      reason: `${cpu} mCPU, ${mem} MiB, ${dur}s — within SIMPLE limits (≤500 mCPU, ≤512 MiB, ≤600s).`,
+    };
+  }
+
+  if (cpu <= MEDIUM_MAX_CPU && mem <= MEDIUM_MAX_MEM && dur <= MEDIUM_MAX_DUR) {
+    return {
+      tier: "MEDIUM",
+      service: "Cloud Run Jobs",
+      reason: `${cpu} mCPU, ${mem} MiB, ${dur}s — within MEDIUM limits (≤4000 mCPU, ≤8192 MiB, ≤3600s).`,
+    };
+  }
+
+  // Exceeds MEDIUM thresholds
+  const reasons: string[] = [];
+  if (cpu > MEDIUM_MAX_CPU) reasons.push(`CPU ${cpu} mCPU > 4000`);
+  if (mem > MEDIUM_MAX_MEM) reasons.push(`memory ${mem} MiB > 8192`);
+  if (dur > MEDIUM_MAX_DUR) reasons.push(`duration ${dur}s > 3600`);
+  return {
+    tier: "COMPLEX",
+    service: "Cloud Batch",
+    reason: `Exceeds MEDIUM limits: ${reasons.join(", ")}.`,
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Combines h/m/s into total seconds for resource_override.max_run_duration_seconds. */
@@ -65,6 +145,28 @@ function isGpuSelected(method: ComputeMethod, preset: string, custom: string): b
 }
 
 // ─── Collapsible Section ──────────────────────────────────────────────────────
+
+const TIER_STYLES: Record<RoutingTier, { bg: string; border: string; badge: string; dot: string }> = {
+  SIMPLE:  { bg: "bg-blue-50",  border: "border-blue-200",  badge: "bg-blue-100 text-blue-800",   dot: "bg-blue-500" },
+  MEDIUM:  { bg: "bg-green-50", border: "border-green-200", badge: "bg-green-100 text-green-800",  dot: "bg-green-500" },
+  COMPLEX: { bg: "bg-orange-50",border: "border-orange-200",badge: "bg-orange-100 text-orange-800",dot: "bg-orange-500" },
+};
+
+function RoutingPreview({ decision }: { decision: RoutingDecision }) {
+  const s = TIER_STYLES[decision.tier];
+  return (
+    <div className={`rounded-lg border ${s.bg} ${s.border} px-4 py-3 space-y-2`}>
+      <div className="flex items-center gap-3">
+        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${s.badge}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
+          {decision.tier}
+        </span>
+        <span className="text-xs font-medium text-gray-700">→ {decision.service}</span>
+      </div>
+      <p className="text-xs text-gray-500">{decision.reason}</p>
+    </div>
+  );
+}
 
 function Section({
   title,
@@ -138,6 +240,8 @@ export function NewJobForm() {
   // Derived
   const gpuSelected = isGpuSelected(computeMethod, preset, customMachine);
   const spotDisabled = gpuSelected;
+  const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
+  const routingDecision = classifyRouting(computeMethod, preset, customMachine, timeoutSeconds);
 
   // ─── Validation ───────────────────────────────────────────────────────────
 
@@ -168,8 +272,7 @@ export function NewJobForm() {
       const envVarsMap: Record<string, string> = {};
       envVars.forEach((ev) => { if (ev.key) envVarsMap[ev.key] = ev.value; });
 
-      const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
-
+      // timeoutSeconds is already computed in derived state above
       let request;
       if (computeMethod === "quick-preset") {
         // Preset path: send resource_profile + timeout override only.
@@ -332,13 +435,8 @@ export function NewJobForm() {
           </div>
         </div>
 
-        {/* Payload preview */}
-        <div className="text-xs text-muted-foreground bg-muted rounded px-3 py-2">
-          {computeMethod === "quick-preset"
-            ? <>Will send: <code className="font-mono text-black">resource_profile: "{PRESET_PROFILE_MAP[preset]}"</code></>
-            : <>Will send: <code className="font-mono text-black">cpu_millis: {MACHINE_RESOURCES[customMachine]?.cpuMillis}, memory_mib: {MACHINE_RESOURCES[customMachine]?.memoryMib}</code></>
-          }
-        </div>
+        {/* Routing tier preview — reacts live to compute + timeout state */}
+        <RoutingPreview decision={routingDecision} />
       </Section>
 
       {/* ── 3. Configuration (Priority 1 — expanded) ── */}

@@ -27,7 +27,7 @@ interface ViewJobFormProps {
   startedAt?: string;
   completedAt?: string;
   errorMessage?: string;
-  gcpBatchJobName?: string;
+  gcpBatchJobPath?: string;
   commands?: string[];
   retryCount?: bigint;
   maxRetries?: bigint;
@@ -58,7 +58,7 @@ export function ViewJobForm({
   startedAt,
   completedAt,
   errorMessage,
-  gcpBatchJobName,
+  gcpBatchJobPath,
   commands,
   retryCount,
   maxRetries,
@@ -187,12 +187,12 @@ export function ViewJobForm({
               </div>
             </>
           )}
-          {gcpBatchJobName && (
+          {gcpBatchJobPath && (
             <>
               <div className="h-px bg-border" />
               <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">GCP Batch Job Name</span>
-                <p className="text-base font-medium font-mono break-all">{gcpBatchJobName}</p>
+                <span className="text-xs font-medium text-muted-foreground uppercase">GCP Batch Job Path</span>
+                <p className="text-base font-medium font-mono break-all">{gcpBatchJobPath}</p>
               </div>
             </>
           )}
