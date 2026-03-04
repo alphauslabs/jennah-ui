@@ -9,6 +9,7 @@ import { ResourceOverrideSchema, SubmitJobRequestSchema } from "@/gen/proto/jenn
 import ChevronDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { DWPArchitectureDiagram } from "@/components/DWPArchitectureDiagram";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -228,6 +229,14 @@ export function NewJobForm() {
   const [serviceAccount, setServiceAccount] = useState("");
   const [streamLogs, setStreamLogs] = useState(true);
 
+  // Distributed Workload Processing (DWP)
+  const [dwpEnabled, setDwpEnabled] = useState(false);
+  const [dwpTaskCount, setDwpTaskCount] = useState(4);
+  const [dwpDistributionMode, setDwpDistributionMode] = useState("BYTE_RANGE");
+  const [dwpInputPath, setDwpInputPath] = useState("");
+  const [dwpInputDataSize, setDwpInputDataSize] = useState(0);
+  const [dwpOutputPath, setDwpOutputPath] = useState("");
+
   // Success state — shown after submit before navigating away
   const [successInfo, setSuccessInfo] = useState<{
     jobId: string;
@@ -241,7 +250,10 @@ export function NewJobForm() {
   const gpuSelected = isGpuSelected(computeMethod, preset, customMachine);
   const spotDisabled = gpuSelected;
   const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
-  const routingDecision = classifyRouting(computeMethod, preset, customMachine, timeoutSeconds);
+  // DWP always routes to COMPLEX/Cloud Batch
+  const routingDecision = dwpEnabled
+    ? { tier: "COMPLEX" as RoutingTier, service: "Cloud Batch" as const, reason: `Distributed processing: ${dwpTaskCount} parallel instances with ${dwpDistributionMode} distribution → Cloud Batch.` }
+    : classifyRouting(computeMethod, preset, customMachine, timeoutSeconds);
 
   // ─── Validation ───────────────────────────────────────────────────────────
 
@@ -257,6 +269,15 @@ export function NewJobForm() {
     if (maxRetries < 1 || maxRetries > 5 || !Number.isInteger(maxRetries)) errs.maxRetries = "Max retries: 1–5.";
     if (bootDiskSize < 10 || bootDiskSize > 100 || !Number.isInteger(bootDiskSize)) errs.bootDisk = "Boot disk: 10–100 GB.";
     if (serviceAccount && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serviceAccount)) errs.serviceAccount = "Must be a valid email format.";
+    // DWP validation
+    if (dwpEnabled) {
+      if (dwpTaskCount < 1 || dwpTaskCount > 100 || !Number.isInteger(dwpTaskCount)) errs.dwpTaskCount = "Task count: 1–100.";
+      if (!dwpInputPath.trim()) errs.dwpInputPath = "Input data path is required for distributed processing.";
+      else if (!dwpInputPath.startsWith("gs://")) errs.dwpInputPath = "Must be a GCS path starting with gs://";
+      if (dwpInputDataSize < 0) errs.dwpInputDataSize = "Input data size must be ≥ 0.";
+      if (!dwpOutputPath.trim()) errs.dwpOutputPath = "Output base path is required for distributed processing.";
+      else if (!dwpOutputPath.startsWith("gs://")) errs.dwpOutputPath = "Must be a GCS path starting with gs://";
+    }
     envVars.forEach((ev, i) => {
       if (ev.key && !/^\w+$/.test(ev.key)) errs[`envKey_${i}`] = `Key "${ev.key}" must be alphanumeric/underscore only.`;
     });
@@ -272,6 +293,19 @@ export function NewJobForm() {
       const envVarsMap: Record<string, string> = {};
       envVars.forEach((ev) => { if (ev.key) envVarsMap[ev.key] = ev.value; });
 
+      // Inject DWP environment variables when distributed processing is enabled
+      if (dwpEnabled) {
+        envVarsMap["ENABLE_DISTRIBUTED_MODE"] = "true";
+        envVarsMap["DISTRIBUTION_MODE"] = dwpDistributionMode;
+        envVarsMap["INPUT_DATA_PATH"] = dwpInputPath;
+        envVarsMap["INPUT_DATA_SIZE"] = String(dwpInputDataSize);
+        envVarsMap["OUTPUT_BASE_PATH"] = dwpOutputPath;
+        envVarsMap["JOB_ID"] = jobName || "dwp-job";
+        // Task group hints for the backend to configure parallelism
+        envVarsMap["JENNAH_TASK_COUNT"] = String(dwpTaskCount);
+        envVarsMap["JENNAH_PARALLELISM"] = String(dwpTaskCount);
+      }
+
       // timeoutSeconds is already computed in derived state above
       let request;
       if (computeMethod === "quick-preset") {
@@ -281,6 +315,7 @@ export function NewJobForm() {
           imageUri: containerImage,
           name: jobName,
           envVars: envVarsMap,
+          serviceAccount: serviceAccount || "",
           resourceProfile: PRESET_PROFILE_MAP[preset] ?? "medium",
           resourceOverride: create(ResourceOverrideSchema, {
             maxRunDurationSeconds: BigInt(timeoutSeconds),
@@ -296,6 +331,7 @@ export function NewJobForm() {
           imageUri: containerImage,
           name: jobName,
           envVars: envVarsMap,
+          serviceAccount: serviceAccount || "",
           resourceOverride: create(ResourceOverrideSchema, {
             cpuMillis: BigInt(resources.cpuMillis),
             memoryMib: BigInt(resources.memoryMib),
@@ -437,6 +473,148 @@ export function NewJobForm() {
 
         {/* Routing tier preview — reacts live to compute + timeout state */}
         <RoutingPreview decision={routingDecision} />
+      </Section>
+
+      {/* ── 2b. Distributed Workload Processing ── */}
+      <Section
+        title="Distributed Processing"
+        subtitle="Split work across multiple parallel instances using GCP Batch."
+        defaultOpen={false}
+      >
+        {/* Enable toggle */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setDwpEnabled((v) => !v)}
+            className={`relative w-10 h-6 rounded-full transition-colors ${dwpEnabled ? "bg-black" : "bg-gray-200"} cursor-pointer`}
+          >
+            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${dwpEnabled ? "translate-x-4" : ""}`} />
+          </button>
+          <div>
+            <Label>Enable Distributed Workload Processing</Label>
+            <p className="text-xs text-muted-foreground">
+              Automatically split input data across multiple GCP Batch instances for parallel processing.
+            </p>
+          </div>
+        </div>
+
+        {dwpEnabled && (
+          <div className="space-y-5 pt-2">
+            {/* DWP info banner */}
+            <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  COMPLEX
+                </span>
+                <span className="text-xs font-medium text-gray-700">→ Cloud Batch (required for DWP)</span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Distributed processing always routes to GCP Cloud Batch with multi-instance task groups.
+              </p>
+            </div>
+
+            {/* Task Count */}
+            <div className="grid gap-2">
+              <Label htmlFor="dwp-task-count">
+                Task Count (Instances) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="dwp-task-count"
+                type="number"
+                min={1}
+                max={100}
+                value={dwpTaskCount}
+                onChange={(e) => setDwpTaskCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                className="w-40"
+              />
+              {validationErrors.dwpTaskCount && <p className="text-xs text-red-500">{validationErrors.dwpTaskCount}</p>}
+              <p className="text-xs text-muted-foreground">
+                Number of parallel instances (1–100). Each instance processes a portion of the input data.
+              </p>
+            </div>
+
+            {/* Distribution Mode */}
+            <div className="grid gap-2">
+              <Label>Distribution Mode</Label>
+              <select
+                value={dwpDistributionMode}
+                onChange={(e) => setDwpDistributionMode(e.target.value)}
+                className="w-full text-sm border rounded-md px-3 py-2 bg-white text-black"
+              >
+                <option value="BYTE_RANGE">Byte Range — split file by byte offsets</option>
+                <option value="LINE_BASED">Line Based — split file by line count</option>
+                <option value="ROUND_ROBIN">Round Robin — distribute records evenly</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                BYTE_RANGE is recommended for large files. Each instance gets a contiguous byte range.
+              </p>
+            </div>
+
+            {/* Input Data Path */}
+            <div className="grid gap-2">
+              <Label htmlFor="dwp-input-path">
+                Input Data Path (GCS) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="dwp-input-path"
+                placeholder="gs://my-bucket/input/data.txt"
+                value={dwpInputPath}
+                onChange={(e) => setDwpInputPath(e.target.value)}
+                className="font-mono text-sm"
+              />
+              {validationErrors.dwpInputPath && <p className="text-xs text-red-500">{validationErrors.dwpInputPath}</p>}
+              <p className="text-xs text-muted-foreground">
+                GCS path to the shared input file. All instances read from this path.
+              </p>
+            </div>
+
+            {/* Input Data Size */}
+            <div className="grid gap-2">
+              <Label htmlFor="dwp-input-size">Input Data Size (bytes)</Label>
+              <Input
+                id="dwp-input-size"
+                type="number"
+                min={0}
+                placeholder="e.g., 86888890"
+                value={dwpInputDataSize || ""}
+                onChange={(e) => setDwpInputDataSize(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-64"
+              />
+              {validationErrors.dwpInputDataSize && <p className="text-xs text-red-500">{validationErrors.dwpInputDataSize}</p>}
+              <p className="text-xs text-muted-foreground">
+                File size in bytes. Used for byte-range calculation. Set to 0 if unknown (auto-detection at runtime).
+              </p>
+            </div>
+
+            {/* Output Base Path */}
+            <div className="grid gap-2">
+              <Label htmlFor="dwp-output-path">
+                Output Base Path (GCS) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="dwp-output-path"
+                placeholder="gs://my-bucket/output"
+                value={dwpOutputPath}
+                onChange={(e) => setDwpOutputPath(e.target.value)}
+                className="font-mono text-sm"
+              />
+              {validationErrors.dwpOutputPath && <p className="text-xs text-red-500">{validationErrors.dwpOutputPath}</p>}
+              <p className="text-xs text-muted-foreground">
+                Each instance writes to <code className="bg-gray-100 px-1 rounded text-[10px]">{"{output_base_path}"}/instance-{"{INDEX}"}.json</code>
+              </p>
+            </div>
+
+            {/* Architecture Diagram */}
+            <DWPArchitectureDiagram
+              taskCount={dwpTaskCount}
+              inputPath={dwpInputPath}
+              outputPath={dwpOutputPath}
+              inputDataSize={dwpInputDataSize}
+              distributionMode={dwpDistributionMode}
+            />
+          </div>
+        )}
       </Section>
 
       {/* ── 3. Configuration (Priority 1 — expanded) ── */}

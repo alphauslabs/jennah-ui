@@ -6,6 +6,7 @@ import Jobs from "./pages/JobsPage";
 import CreateJobPage from "./pages/CreateJobPage";
 import EditJobPage from "./pages/EditJobsPage";
 import ViewJob from "./pages/ViewJobsPage";
+import DWPPage from "./pages/DWPPage";
 
 function App() {
   console.log("App component rendering");
@@ -55,6 +56,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EditJobPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dwp"
+              element={
+                <ProtectedRoute>
+                  <DWPPage />
                 </ProtectedRoute>
               }
             />

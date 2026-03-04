@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DWPArchitectureDiagram } from "@/components/DWPArchitectureDiagram";
 
 interface EnvVar {
   id: string;
@@ -75,6 +76,24 @@ export function ViewJobForm({
   const finalContainerLink = containerLink;
   const finalDuration = duration;
   const finalEnvVars = envVars;
+
+  // Detect DWP job from env vars
+  const envMap = Object.fromEntries((finalEnvVars || []).map((ev) => [ev.key, ev.value]));
+  const isDwpJob = envMap["ENABLE_DISTRIBUTED_MODE"] === "true";
+  const dwpTaskCount = parseInt(envMap["JENNAH_TASK_COUNT"] || "0", 10);
+  const dwpDistributionMode = envMap["DISTRIBUTION_MODE"] || "BYTE_RANGE";
+  const dwpInputPath = envMap["INPUT_DATA_PATH"] || "";
+  const dwpInputDataSize = parseInt(envMap["INPUT_DATA_SIZE"] || "0", 10);
+  const dwpOutputPath = envMap["OUTPUT_BASE_PATH"] || "";
+
+  // DWP-specific env var keys to filter from the general env table
+  const DWP_ENV_KEYS = new Set([
+    "ENABLE_DISTRIBUTED_MODE", "DISTRIBUTION_MODE", "INPUT_DATA_PATH",
+    "INPUT_DATA_SIZE", "OUTPUT_BASE_PATH", "JENNAH_TASK_COUNT", "JENNAH_PARALLELISM",
+  ]);
+  const nonDwpEnvVars = isDwpJob
+    ? (finalEnvVars || []).filter((ev) => !DWP_ENV_KEYS.has(ev.key))
+    : finalEnvVars || [];
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -208,6 +227,58 @@ export function ViewJobForm({
         </div>
       </div>
 
+      {/* Distributed Processing Section (shown only for DWP jobs) */}
+      {isDwpJob && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold">Distributed Processing</h2>
+          </div>
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  DWP Enabled
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
+                  {dwpDistributionMode.replace("_", " ")}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid gap-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Instances</span>
+                  <p className="text-base font-medium">{dwpTaskCount}</p>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Input Size</span>
+                  <p className="text-base font-medium font-mono">{dwpInputDataSize > 0 ? `${(dwpInputDataSize / 1048576).toFixed(1)} MB` : "Auto"}</p>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Per Instance</span>
+                  <p className="text-base font-medium font-mono">{dwpInputDataSize > 0 && dwpTaskCount > 0 ? `${(dwpInputDataSize / dwpTaskCount / 1048576).toFixed(1)} MB` : "—"}</p>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase">Input Path</span>
+                <p className="text-base font-medium font-mono break-all">{dwpInputPath}</p>
+              </div>
+              <div className="h-px bg-border" />
+              <div className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase">Output Path</span>
+                <p className="text-base font-medium font-mono break-all">{dwpOutputPath}</p>
+              </div>
+            </div>
+            <DWPArchitectureDiagram
+              taskCount={dwpTaskCount}
+              inputPath={dwpInputPath}
+              outputPath={dwpOutputPath}
+              inputDataSize={dwpInputDataSize}
+              distributionMode={dwpDistributionMode}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Resources Section */}
       <div>
         <div className="mb-4">
@@ -300,7 +371,7 @@ export function ViewJobForm({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(finalEnvVars || []).map((envVar) => {
+                {(nonDwpEnvVars).map((envVar) => {
                   return (
                     <TableRow key={envVar.id}>
                       <TableCell className="font-medium">
