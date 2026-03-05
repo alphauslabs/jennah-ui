@@ -1,5 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -43,29 +41,46 @@ function PipelineProgress({ status }: { status: string }) {
   const failed = status === "FAILED" || status === "CANCELLED";
 
   return (
-    <div className="flex items-center gap-1 w-full">
+    <div className="flex items-start w-full">
       {PIPELINE_STEPS.map((step, i) => {
         const done = !failed && phase >= i + 1;
         const active = !failed && phase === i;
-        const isFail = failed && i === Math.max(statusToPhase("SCHEDULED"), 0);
+        const isFail = failed && i <= Math.max(statusToPhase("SCHEDULED"), 0) && failed;
+        const isLast = i === PIPELINE_STEPS.length - 1;
+
         return (
-          <div key={step} className="flex items-center gap-1 flex-1">
-            <div className="flex flex-col items-center flex-1">
-              <div
-                className={`h-1.5 w-full rounded-full transition-all duration-500 ${
-                  done ? "bg-green-500" :
-                  active ? "bg-blue-500 animate-pulse" :
-                  isFail ? "bg-red-400" :
-                  "bg-gray-200"
-                }`}
-              />
-              <span className={`text-[9px] mt-1 whitespace-nowrap ${
-                done ? "text-green-600 font-semibold" :
-                active ? "text-blue-600 font-semibold" :
-                isFail ? "text-red-500 font-semibold" :
-                "text-gray-400"
+          <div key={step} className="flex items-start flex-1 min-w-0">
+            <div className="flex flex-col items-center min-w-[24px]">
+              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-medium shrink-0 transition-colors ${
+                done   ? "bg-[#1a73e8] text-white" :
+                active ? "border-2 border-[#1a73e8] text-[#1a73e8] bg-white" :
+                isFail ? "bg-[#ea4335] text-white" :
+                "bg-[#e8eaed] text-[#5f6368]"
+              }`}>
+                {done ? (
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : isFail ? (
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <span>{i + 1}</span>
+                )}
+              </div>
+              <span className={`text-[10px] mt-1.5 text-center leading-tight max-w-[72px] ${
+                done   ? "text-[#1a73e8] font-medium" :
+                active ? "text-[#1a73e8] font-medium" :
+                isFail ? "text-[#ea4335] font-medium" :
+                "text-[#5f6368]"
               }`}>{step}</span>
             </div>
+            {!isLast && (
+              <div className={`h-[2px] flex-1 mt-[11px] mx-1.5 rounded-full ${
+                done ? "bg-[#1a73e8]" : "bg-[#dadce0]"
+              }`} />
+            )}
           </div>
         );
       })}
@@ -74,155 +89,268 @@ function PipelineProgress({ status }: { status: string }) {
 }
 
 function formatBytesCompact(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)}KB`;
-  if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)}MB`;
-  return `${(bytes / 1073741824).toFixed(1)}GB`;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
+  return `${(bytes / 1073741824).toFixed(1)} GB`;
 }
+
+const GOOGLE_COLORS = [
+  { accent: "#1a73e8", bg: "#e8f0fe" },
+  { accent: "#34a853", bg: "#e6f4ea" },
+  { accent: "#f9ab00", bg: "#fef7e0" },
+  { accent: "#ea4335", bg: "#fce8e6" },
+  { accent: "#a142f4", bg: "#f3e8fd" },
+  { accent: "#12b5cb", bg: "#e4f7fb" },
+  { accent: "#fa903e", bg: "#fef1e6" },
+  { accent: "#5f6368", bg: "#f1f3f4" },
+];
 
 function InstanceGrid({ job }: { job: DwpJobContext }) {
   const instances = Array.from({ length: Math.min(job.taskCount, 16) }, (_, i) => i);
   const bytesPerInstance = job.inputDataSize > 0 ? Math.floor(job.inputDataSize / job.taskCount) : 0;
-
-  const instanceColors = [
-    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-amber-500",
-    "bg-rose-500", "bg-cyan-500", "bg-indigo-500", "bg-teal-500",
-    "bg-blue-400", "bg-green-400", "bg-purple-400", "bg-amber-400",
-    "bg-rose-400", "bg-cyan-400", "bg-indigo-400", "bg-teal-400",
-  ];
+  const totalBytes = job.inputDataSize;
 
   const isActive = job.status === "RUNNING" || job.status === "SCHEDULED";
   const isDone = job.status === "COMPLETED";
   const isFailed = job.status === "FAILED";
+  const isPending = job.status === "PENDING";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-700">
-          Instance Status — {job.taskCount} parallel worker{job.taskCount !== 1 ? "s" : ""}
-        </p>
+        <div className="flex items-center gap-2">
+          <svg className="h-5 w-5 text-[#5f6368]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          <span className="text-sm font-medium text-[#202124]">Parallel instances</span>
+          <span className="text-sm text-[#5f6368]">({job.taskCount})</span>
+        </div>
         {isDone && (
-          <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-            All {job.taskCount} instances completed
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#137333] bg-[#e6f4ea] px-3 py-1 rounded-full">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Completed
           </span>
         )}
         {isActive && (
-          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full animate-pulse">
-            Processing on {job.taskCount} instances...
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1a73e8] bg-[#e8f0fe] px-3 py-1 rounded-full">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#1a73e8] animate-pulse" />
+            Running
           </span>
         )}
         {isFailed && (
-          <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-            Job failed
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#c5221f] bg-[#fce8e6] px-3 py-1 rounded-full">
+            Error
+          </span>
+        )}
+        {isPending && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5f6368] bg-[#f1f3f4] px-3 py-1 rounded-full">
+            Pending
           </span>
         )}
       </div>
 
-      <div className={`grid gap-1.5 ${
-        job.taskCount <= 4 ? "grid-cols-4" :
-        job.taskCount <= 8 ? "grid-cols-4 md:grid-cols-8" :
-        "grid-cols-4 md:grid-cols-8"
+      {/* Data distribution */}
+      {totalBytes > 0 && (
+        <div className="bg-[#f8f9fa] rounded-lg p-4 border border-[#e8eaed]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-[#5f6368]">Data distribution</span>
+            <span className="text-xs text-[#5f6368] font-mono">{formatBytesCompact(totalBytes)} total</span>
+          </div>
+          <div className="flex rounded h-2 overflow-hidden bg-[#dadce0]">
+            {instances.map((idx) => {
+              const c = GOOGLE_COLORS[idx % GOOGLE_COLORS.length];
+              return (
+                <div
+                  key={idx}
+                  className={`h-full ${isFailed ? "opacity-30" : ""}`}
+                  style={{ width: `${100 / job.taskCount}%`, background: c.accent }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Instance cards */}
+      <div className={`grid gap-3 ${
+        job.taskCount <= 2 ? "grid-cols-1 sm:grid-cols-2" :
+        "grid-cols-2 lg:grid-cols-4"
       }`}>
         {instances.map((idx) => {
-          const startPct = Math.round((idx / job.taskCount) * 100);
-          const endPct = Math.round(((idx + 1) / job.taskCount) * 100);
+          const startByte = bytesPerInstance * idx;
+          const endByte = idx === job.taskCount - 1 ? totalBytes : bytesPerInstance * (idx + 1);
+          const c = GOOGLE_COLORS[idx % GOOGLE_COLORS.length];
+
           return (
             <div
               key={idx}
-              className={`relative rounded-lg border p-2 text-center transition-all ${
-                isDone ? "border-green-200 bg-green-50" :
-                isActive ? "border-blue-200 bg-blue-50" :
-                isFailed ? "border-red-200 bg-red-50" :
-                "border-gray-200 bg-gray-50"
-              }`}
+              className="bg-white border border-[#dadce0] rounded-lg overflow-hidden hover:shadow-[0_1px_3px_rgba(60,64,67,0.3)] transition-shadow"
             >
-              <div className={`h-1 rounded-full mb-1.5 ${
-                isDone ? instanceColors[idx % instanceColors.length] :
-                isActive ? `${instanceColors[idx % instanceColors.length]} animate-pulse` :
-                isFailed ? "bg-red-300" :
-                "bg-gray-300"
-              }`} />
-              <p className="text-[10px] font-bold text-gray-800">#{idx}</p>
-              <p className="text-[9px] text-gray-500 font-mono">{startPct}%–{endPct}%</p>
-              {bytesPerInstance > 0 && (
-                <p className="text-[9px] text-gray-400 font-mono">{formatBytesCompact(bytesPerInstance)}</p>
-              )}
-              <div className={`absolute top-1.5 right-1.5 h-2 w-2 rounded-full ${
-                isDone ? "bg-green-500" :
-                isActive ? "bg-blue-500 animate-pulse" :
-                isFailed ? "bg-red-400" :
-                "bg-gray-300"
-              }`} />
+              <div className="flex">
+                <div className="w-1 shrink-0" style={{ background: isFailed ? "#dadce0" : c.accent }} />
+                <div className="p-3 flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-[#202124]">Instance {idx}</span>
+                    <div className={`h-2 w-2 rounded-full ${
+                      isDone   ? "bg-[#34a853]" :
+                      isActive ? "bg-[#1a73e8]" :
+                      isFailed ? "bg-[#ea4335]" :
+                      "bg-[#dadce0]"
+                    }`} />
+                  </div>
+                  {bytesPerInstance > 0 ? (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-[#5f6368] font-mono">{formatBytesCompact(endByte - startByte)}</p>
+                      <div className="h-1 rounded-full bg-[#e8eaed] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: isDone ? "100%" : isActive ? "65%" : "0%",
+                            background: c.accent,
+                            opacity: isFailed ? 0.3 : 1,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#5f6368]">Auto-partitioned</p>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
+
       {job.taskCount > 16 && (
-        <p className="text-[10px] text-gray-400 text-center">
-          Showing 16 of {job.taskCount} instances
-        </p>
+        <p className="text-xs text-[#5f6368] text-center">Showing 16 of {job.taskCount} instances</p>
       )}
 
+      {/* Output files */}
       {isDone && job.outputPath && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-3 mt-2">
-          <p className="text-[10px] font-semibold text-green-700 mb-1.5">Output Files Generated</p>
+        <div className="bg-[#e6f4ea] border border-[#ceead6] rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="h-4 w-4 text-[#137333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="text-sm font-medium text-[#137333]">Output files</span>
+            <span className="text-xs text-[#137333] font-mono ml-auto">{job.outputPath}/</span>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {instances.map((idx) => (
-              <span key={idx} className="text-[9px] font-mono bg-white border border-green-200 text-green-700 px-1.5 py-0.5 rounded">
+              <span
+                key={idx}
+                className="text-xs font-mono text-[#137333] bg-white border border-[#ceead6] px-2.5 py-1 rounded"
+              >
                 instance-{idx}.json
               </span>
             ))}
           </div>
-          <p className="text-[9px] text-green-600 mt-1.5 font-mono">{job.outputPath}/</p>
         </div>
       )}
     </div>
   );
 }
 
+function formatElapsed(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ${sec % 60}s`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ${min % 60}m`;
+}
+
+const TIMELINE_EVENTS: {
+  key: string;
+  label: string;
+  color: string;
+  field: keyof DwpJobContext;
+}[] = [
+  { key: "submitted",  label: "Job submitted",      color: "#5f6368", field: "createdAt" },
+  { key: "scheduled",  label: "VMs allocated",       color: "#a142f4", field: "scheduledAt" },
+  { key: "started",    label: "Processing started",  color: "#1a73e8", field: "startedAt" },
+  { key: "completed",  label: "All instances done",  color: "#34a853", field: "completedAt" },
+];
+
 function JobTimeline({ job }: { job: DwpJobContext }) {
-  const events: { label: string; time: string; icon: string; color: string }[] = [];
-  if (job.createdAt)    events.push({ label: "Submitted", time: job.createdAt, icon: "📤", color: "text-gray-600" });
-  if (job.scheduledAt)  events.push({ label: "VMs Allocated", time: job.scheduledAt, icon: "🖥️", color: "text-purple-600" });
-  if (job.startedAt)    events.push({ label: "Processing Started", time: job.startedAt, icon: "⚡", color: "text-blue-600" });
-  if (job.completedAt)  events.push({ label: "All Instances Done", time: job.completedAt, icon: "✅", color: "text-green-600" });
-  if (job.errorMessage) events.push({ label: "Error", time: job.completedAt || job.createdAt, icon: "❌", color: "text-red-600" });
+  const events = TIMELINE_EVENTS
+    .filter((e) => !!job[e.field])
+    .map((e) => ({ ...e, time: job[e.field] as string }));
+
+  if (job.errorMessage) {
+    events.push({
+      key: "error",
+      label: "Error occurred",
+      color: "#ea4335",
+      field: "errorMessage",
+      time: job.completedAt || job.createdAt,
+    });
+  }
 
   if (events.length === 0) return null;
 
-  const start = job.createdAt ? new Date(job.createdAt).getTime() : 0;
-  const end = job.completedAt ? new Date(job.completedAt).getTime() : Date.now();
-  const elapsedMs = start > 0 ? end - start : 0;
-  const elapsedSec = Math.floor(elapsedMs / 1000);
-  const elapsedStr = elapsedSec >= 60
-    ? `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s`
-    : `${elapsedSec}s`;
+  const startMs = job.createdAt ? new Date(job.createdAt).getTime() : 0;
+  const endMs = job.completedAt ? new Date(job.completedAt).getTime() : Date.now();
+  const totalElapsed = startMs > 0 ? endMs - startMs : 0;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-700">Execution Timeline</p>
-        {elapsedMs > 0 && (
-          <span className="text-[10px] font-mono text-gray-500">
-            {job.completedAt ? `Total: ${elapsedStr}` : `Elapsed: ${elapsedStr}`}
+        <span className="text-sm font-medium text-[#202124]">Execution timeline</span>
+        {totalElapsed > 0 && (
+          <span className="text-xs text-[#5f6368] font-mono">
+            {job.completedAt ? `Total: ${formatElapsed(totalElapsed)}` : `Elapsed: ${formatElapsed(totalElapsed)}`}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-0">
-        {events.map((evt, i) => (
-          <div key={i} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <span className="text-sm">{evt.icon}</span>
-              <span className={`text-[9px] font-medium ${evt.color} whitespace-nowrap mt-0.5`}>{evt.label}</span>
-              <span className="text-[8px] text-gray-400 font-mono">
-                {new Date(evt.time).toLocaleTimeString()}
-              </span>
-            </div>
-            {i < events.length - 1 && (
-              <div className="h-px w-8 md:w-16 bg-gray-300 mx-1 self-center mb-5" />
-            )}
-          </div>
-        ))}
+
+      <div className="relative ml-3">
+        {/* Vertical connector */}
+        <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#dadce0]" />
+
+        <div className="space-y-0">
+          {events.map((evt, i) => {
+            const prevTime = i > 0 ? new Date(events[i - 1].time).getTime() : 0;
+            const currTime = new Date(evt.time).getTime();
+            const delta = prevTime > 0 ? currTime - prevTime : 0;
+            const isError = evt.key === "error";
+
+            return (
+              <div key={evt.key} className="relative flex items-start gap-4 pb-6 last:pb-0">
+                {/* Dot */}
+                <div
+                  className="relative z-10 h-4 w-4 rounded-full border-2 bg-white shrink-0"
+                  style={{ borderColor: evt.color }}
+                />
+                {/* Content */}
+                <div className="flex-1 min-w-0 -mt-0.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className={`text-sm ${isError ? "text-[#c5221f] font-medium" : "text-[#202124]"}`}>
+                      {evt.label}
+                    </span>
+                    <span className="text-xs text-[#5f6368] font-mono whitespace-nowrap">
+                      {new Date(evt.time).toLocaleString(undefined, {
+                        month: "short", day: "numeric",
+                        hour: "2-digit", minute: "2-digit", second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  {delta > 0 && (
+                    <p className="text-xs text-[#80868b] mt-0.5">+{formatElapsed(delta)}</p>
+                  )}
+                  {isError && job.errorMessage && (
+                    <p className="text-xs text-[#c5221f] font-mono mt-1 break-all">{job.errorMessage}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -295,7 +423,6 @@ export function ViewJobForm({
 }: ViewJobFormProps) {
   const finalJobID = jobID;
   const finalContainerLink = containerLink;
-  const finalDuration = duration;
   const finalEnvVars = envVars;
 
   // Detect DWP job from env vars
@@ -329,344 +456,216 @@ export function ViewJobForm({
     errorMessage: errorMessage || "",
   };
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
-    if (minutes > 0) return `${minutes}m ${secs}s`;
-    return `${secs}s`;
-  };
-
   return (
-    <div className="space-y-8 max-w-auto">
-      {/* Header */}
-      {/* <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <h1 className="text-3xl font-semibold">{finalJobName}</h1>
-            {finalStatus && (
-              <Badge className={statusMap[finalStatus]?.className}>
-                {statusMap[finalStatus]?.label}
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            View and manage your job configuration
-          </p>
-        </div>
-        {onBack && (
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        )}
-      </div> */}
+    <div className="space-y-6 max-w-[960px]">
 
-      {/* Job Details Section */}
-      <div>
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold">Job Details</h2>
-        </div>
-        <div className="space-y-6 bg-card rounded-lg border p-6">
-          {/* Error message shown when job has failed */}
-          {errorMessage && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <p className="text-xs font-semibold text-red-700 uppercase mb-1">Failure Reason</p>
-              <p className="text-sm text-red-700 font-mono break-all">{errorMessage}</p>
-            </div>
-          )}
-          <div className="grid gap-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase">
-              Job ID
-            </span>
-            <p className="text-base font-medium">{finalJobID}</p>
-          </div>
-          <div className="h-px bg-border" />
-          <div className="grid gap-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase">
-              Container Link
-            </span>
-            <p className="text-base font-medium break-all">
-              {finalContainerLink}
-            </p>
-          </div>
-          {createdAt && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">
-                  Created At
-                </span>
-                <p className="text-base font-medium">
-                  {new Date(createdAt).toLocaleString()}
-                </p>
-              </div>
-            </>
-          )}
-          {scheduledAt && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Scheduled At</span>
-                <p className="text-base font-medium">{new Date(scheduledAt).toLocaleString()}</p>
-              </div>
-            </>
-          )}
-          {startedAt && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Started At</span>
-                <p className="text-base font-medium">{new Date(startedAt).toLocaleString()}</p>
-              </div>
-            </>
-          )}
-          {completedAt && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Completed At</span>
-                <p className="text-base font-medium">{new Date(completedAt).toLocaleString()}</p>
-              </div>
-            </>
-          )}
-          {updatedAt && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Last Updated</span>
-                <p className="text-base font-medium">{new Date(updatedAt).toLocaleString()}</p>
-              </div>
-            </>
-          )}
-          {gcpBatchJobPath && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">GCP Batch Job Path</span>
-                <p className="text-base font-medium font-mono break-all">{gcpBatchJobPath}</p>
-              </div>
-            </>
-          )}
-          {(retryCount !== undefined && maxRetries !== undefined && maxRetries > 0n) && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Retries</span>
-                <p className="text-base font-medium">{String(retryCount)} / {String(maxRetries)}</p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Distributed Processing Section (shown only for DWP jobs) */}
-      {isDwpJob && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-2xl font-semibold">Distributed Processing</h2>
-          </div>
-          <div className="space-y-6">
-            {/* Pipeline progress bar */}
-            <div className="bg-card rounded-lg border p-6">
-              <p className="text-xs font-semibold text-gray-700 mb-3">Pipeline Progress</p>
-              <PipelineProgress status={dwpContext.status} />
-            </div>
-
-            {/* Config overview */}
-            <div className="bg-card rounded-lg border p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                  DWP Enabled
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
-                  {dwpDistributionMode.replace("_", " ")}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase">Instances</span>
-                  <p className="text-base font-medium">{dwpTaskCount}</p>
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase">Input Size</span>
-                  <p className="text-base font-medium font-mono">{dwpInputDataSize > 0 ? `${(dwpInputDataSize / 1048576).toFixed(1)} MB` : "Auto"}</p>
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase">Per Instance</span>
-                  <p className="text-base font-medium font-mono">{dwpInputDataSize > 0 && dwpTaskCount > 0 ? `${(dwpInputDataSize / dwpTaskCount / 1048576).toFixed(1)} MB` : "—"}</p>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Input Path</span>
-                <p className="text-base font-medium font-mono break-all">{dwpInputPath}</p>
-              </div>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Output Path</span>
-                <p className="text-base font-medium font-mono break-all">{dwpOutputPath}</p>
-              </div>
-            </div>
-
-            {/* Instance grid visualization */}
-            <div className="bg-card rounded-lg border p-6">
-              <InstanceGrid job={dwpContext} />
-            </div>
-
-            {/* Execution timeline */}
-            <div className="bg-card rounded-lg border p-6">
-              <JobTimeline job={dwpContext} />
-            </div>
-
-            <DWPArchitectureDiagram
-              taskCount={dwpTaskCount}
-              inputPath={dwpInputPath}
-              outputPath={dwpOutputPath}
-              inputDataSize={dwpInputDataSize}
-              distributionMode={dwpDistributionMode}
-            />
+      {/* Error alert — Google style */}
+      {errorMessage && (
+        <div className="flex items-start gap-3 bg-[#fce8e6] border border-[#f5c6cb] rounded-lg px-4 py-3">
+          <svg className="h-5 w-5 text-[#c5221f] mt-0.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-[#c5221f]">This job failed</p>
+            <p className="text-sm text-[#5f6368] font-mono mt-1 break-all">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Resources Section */}
-      <div>
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold">Resources</h2>
+      {/* Overview card */}
+      <div className="bg-white border border-[#dadce0] rounded-lg">
+        <div className="px-6 py-4 border-b border-[#dadce0]">
+          <h2 className="text-base font-medium text-[#202124]">Overview</h2>
         </div>
-        <div className="space-y-6 bg-card rounded-lg border p-6">
-          {machineType && (
-            <div className="grid gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase">Machine Type</span>
-              <p className="text-base font-medium font-mono">{machineType}</p>
+        <div className="px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-12">
+            <div>
+              <p className="text-xs text-[#5f6368] mb-1">Job ID</p>
+              <p className="text-sm text-[#202124] font-mono">{finalJobID}</p>
             </div>
-          )}
-          {resourceProfile && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Resource Profile</span>
-                <p className="text-base font-medium capitalize">{resourceProfile}</p>
-              </div>
-            </>
-          )}
-          {bootDiskSizeGb !== undefined && bootDiskSizeGb > 0n && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Boot Disk Size</span>
-                <p className="text-base font-medium">{String(bootDiskSizeGb)} GB</p>
-              </div>
-            </>
-          )}
-          <>
-            <div className="h-px bg-border" />
-            <div className="grid gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase">Spot VMs</span>
-              <p className="text-base font-medium">{useSpotVms ? "Enabled" : "Disabled"}</p>
+            <div>
+              <p className="text-xs text-[#5f6368] mb-1">Container image</p>
+              <p className="text-sm text-[#202124] font-mono break-all">{finalContainerLink}</p>
             </div>
-          </>
-          {serviceAccount && (
-            <>
-              <div className="h-px bg-border" />
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Service Account</span>
-                <p className="text-base font-medium break-all">{serviceAccount}</p>
+            {machineType && (
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Machine type</p>
+                <p className="text-sm text-[#202124] font-mono">{machineType}</p>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            )}
+            {resourceProfile && (
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Resource profile</p>
+                <p className="text-sm text-[#202124] capitalize">{resourceProfile}</p>
+              </div>
+            )}
+            {gcpBatchJobPath && (
+              <div className="md:col-span-2">
+                <p className="text-xs text-[#5f6368] mb-1">GCP Batch job</p>
+                <p className="text-sm text-[#1a73e8] font-mono break-all">{gcpBatchJobPath}</p>
+              </div>
+            )}
+          </div>
 
-      {/* Configuration Section */}
-      <div>
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold">Configuration</h2>
-        </div>
-        <div className="space-y-6">
-          <div className="bg-card rounded-lg border p-6">
-            <div className="grid gap-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase">
-                Timeout Duration
+          {/* Metadata chips */}
+          <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-[#e8eaed]">
+            {createdAt && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-[#5f6368] bg-[#f1f3f4] px-2.5 py-1 rounded-full">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {new Date(createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </span>
-              <p className="text-base font-medium">
-                {formatDuration(finalDuration || 0)}
-              </p>
-            </div>
-          </div>
-          {commands && commands.length > 0 && (
-            <div className="bg-card rounded-lg border p-6">
-              <div className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase mb-2">Commands</span>
-                <div className="bg-gray-50 rounded-md p-3 font-mono text-sm space-y-1">
-                  {commands.map((cmd, i) => (
-                    <p key={i} className="break-all">{cmd}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="rounded-lg border bg-card overflow-hidden">
-            <div className="p-6 border-b">
-              <h3 className="text-sm font-semibold">Environment Variables</h3>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold">Key</TableHead>
-                  <TableHead className="font-semibold">Value</TableHead>
-                  <TableHead className="text-right font-semibold">
-                    Status
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(nonDwpEnvVars).map((envVar) => {
-                  return (
-                    <TableRow key={envVar.id}>
-                      <TableCell className="font-medium">
-                        {envVar.key}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground break-all">
-                        {envVar.value}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {envVar.error ? (
-                          <Badge className="bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">
-                            {envVar.error}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
-                            Valid
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            )}
+            {bootDiskSizeGb !== undefined && bootDiskSizeGb > 0n && (
+              <span className="text-xs text-[#5f6368] bg-[#f1f3f4] px-2.5 py-1 rounded-full">
+                Disk: {String(bootDiskSizeGb)} GB
+              </span>
+            )}
+            <span className="text-xs text-[#5f6368] bg-[#f1f3f4] px-2.5 py-1 rounded-full">
+              {useSpotVms ? "Spot VM" : "On-demand"}
+            </span>
+            {(retryCount !== undefined && maxRetries !== undefined && maxRetries > 0n) && (
+              <span className="text-xs text-[#5f6368] bg-[#f1f3f4] px-2.5 py-1 rounded-full">
+                Retries: {String(retryCount)}/{String(maxRetries)}
+              </span>
+            )}
+            {serviceAccount && (
+              <span className="text-xs text-[#5f6368] bg-[#f1f3f4] px-2.5 py-1 rounded-full font-mono truncate max-w-xs">
+                {serviceAccount}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-4 pt-4">
-        {onBack && (
-          <Button size="lg" variant="outline" className="px-8" onClick={onBack}>
-            Cancel
-          </Button>
-        )}
-        {/* <Button size="lg" variant="outline" className="px-8" asChild>
-          <Link to={`/jobs/${jobId}/edit`}>Edit</Link>
-        </Button> */}
-        {/* <Button size="lg" className="px-8">
-          Run Job
-        </Button> */}
-      </div>
+      {/* Distributed Processing (DWP jobs only) */}
+      {isDwpJob && (
+        <div className="space-y-4">
+          <h2 className="text-base font-medium text-[#202124] px-1">Distributed processing</h2>
+
+          {/* Pipeline progress */}
+          <div className="bg-white border border-[#dadce0] rounded-lg px-6 py-5">
+            <PipelineProgress status={dwpContext.status} />
+          </div>
+
+          {/* DWP config */}
+          <div className="bg-white border border-[#dadce0] rounded-lg px-6 py-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#e37400] bg-[#fef7e0] px-2.5 py-1 rounded-full">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#f9ab00]" />
+                DWP enabled
+              </span>
+              <span className="text-xs font-medium text-[#1a73e8] bg-[#e8f0fe] px-2.5 py-1 rounded-full">
+                {dwpDistributionMode.replace("_", " ")}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Instances</p>
+                <p className="text-sm text-[#202124] font-medium">{dwpTaskCount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Input size</p>
+                <p className="text-sm text-[#202124] font-mono">{dwpInputDataSize > 0 ? `${(dwpInputDataSize / 1048576).toFixed(1)} MB` : "Auto"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Per instance</p>
+                <p className="text-sm text-[#202124] font-mono">{dwpInputDataSize > 0 && dwpTaskCount > 0 ? `${(dwpInputDataSize / dwpTaskCount / 1048576).toFixed(1)} MB` : "—"}</p>
+              </div>
+            </div>
+            <div className="border-t border-[#e8eaed] pt-4 space-y-3">
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Input path</p>
+                <p className="text-sm text-[#202124] font-mono break-all">{dwpInputPath}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#5f6368] mb-1">Output path</p>
+                <p className="text-sm text-[#202124] font-mono break-all">{dwpOutputPath}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Instance grid */}
+          <div className="bg-white border border-[#dadce0] rounded-lg px-6 py-5">
+            <InstanceGrid job={dwpContext} />
+          </div>
+
+          {/* Timeline */}
+          <div className="bg-white border border-[#dadce0] rounded-lg px-6 py-5">
+            <JobTimeline job={dwpContext} />
+          </div>
+
+          <DWPArchitectureDiagram
+            taskCount={dwpTaskCount}
+            inputPath={dwpInputPath}
+            outputPath={dwpOutputPath}
+            inputDataSize={dwpInputDataSize}
+            distributionMode={dwpDistributionMode}
+          />
+        </div>
+      )}
+
+      {/* Configuration */}
+      {((commands && commands.length > 0) || (nonDwpEnvVars && nonDwpEnvVars.length > 0)) && (
+        <div className="space-y-4">
+          <h2 className="text-base font-medium text-[#202124] px-1">Configuration</h2>
+
+          {commands && commands.length > 0 && (
+            <div className="bg-white border border-[#dadce0] rounded-lg overflow-hidden">
+              <div className="px-6 py-3 border-b border-[#dadce0] bg-[#f8f9fa]">
+                <span className="text-xs text-[#5f6368] font-medium">Commands</span>
+              </div>
+              <div className="p-4 font-mono text-sm text-[#202124] bg-[#f8f9fa] space-y-0.5">
+                {commands.map((cmd, i) => (
+                  <p key={i} className="break-all">
+                    <span className="text-[#80868b] select-none mr-2">$</span>{cmd}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {nonDwpEnvVars && nonDwpEnvVars.length > 0 && (
+            <div className="bg-white border border-[#dadce0] rounded-lg overflow-hidden">
+              <div className="px-6 py-3 border-b border-[#dadce0]">
+                <span className="text-xs text-[#5f6368] font-medium">Environment variables</span>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-[#e8eaed]">
+                    <TableHead className="text-xs text-[#5f6368] font-medium h-10">Key</TableHead>
+                    <TableHead className="text-xs text-[#5f6368] font-medium h-10">Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nonDwpEnvVars.map((envVar) => (
+                    <TableRow key={envVar.id} className="border-b border-[#e8eaed] hover:bg-[#f8f9fa]">
+                      <TableCell className="text-sm text-[#202124] font-mono py-2.5">{envVar.key}</TableCell>
+                      <TableCell className="text-sm text-[#5f6368] font-mono break-all py-2.5">{envVar.value}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Back */}
+      {onBack && (
+        <div className="pt-2">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#1a73e8] hover:bg-[#e8f0fe] px-4 py-2 rounded-full transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+          </button>
+        </div>
+      )}
     </div>
   );
 }
