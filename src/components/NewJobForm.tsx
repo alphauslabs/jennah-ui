@@ -62,24 +62,24 @@ const PRESET_RESOLVED: Record<string, { cpuMillis: number; memoryMib: number; de
   xlarge: { cpuMillis: 8000,  memoryMib: 16384, defaultDurationSeconds: 14400 },
 };
 
-// Backend thresholds (router package — mirrors exact values from backend docs)
-const SIMPLE_MAX_CPU   = 500;
-const SIMPLE_MAX_MEM   = 512;
-const SIMPLE_MAX_DUR   = 600;
-const MEDIUM_MAX_CPU   = 4000;
-const MEDIUM_MAX_MEM   = 8192;
-const MEDIUM_MAX_DUR   = 3600;
+// Backend thresholds (router package — two-tier system after MEDIUM/Cloud Tasks removal)
+// SIMPLE (≤ these values) → Cloud Run Jobs
+// COMPLEX (above these values OR explicit machine_type) → Cloud Batch
+const SIMPLE_MAX_CPU   = 4000;
+const SIMPLE_MAX_MEM   = 8192;
+const SIMPLE_MAX_DUR   = 3600;
 
-type RoutingTier = "SIMPLE" | "MEDIUM" | "COMPLEX";
+type RoutingTier = "SIMPLE" | "COMPLEX";
 interface RoutingDecision {
   tier: RoutingTier;
-  service: "Cloud Tasks" | "Cloud Run Jobs" | "Cloud Batch";
+  service: "Cloud Run Jobs" | "Cloud Batch";
   reason: string;
 }
 
 /**
- * Mirrors the backend router package's classification logic.
- * timeoutSeconds = 0 means "use preset default" — we resolve it for accurate prediction.
+ * Mirrors the backend router/classifier.go two-tier logic.
+ * SIMPLE → Cloud Run Jobs, COMPLEX → Cloud Batch.
+ * timeoutSeconds = 0 means "use preset default" — resolved for accurate prediction.
  */
 function classifyRouting(
   computeMethod: ComputeMethod,
@@ -97,7 +97,7 @@ function classifyRouting(
     };
   }
 
-  // Preset path — resolve real numbers
+  // Preset path — resolve real numbers from navigator preset table
   const resolved = PRESET_RESOLVED[PRESET_PROFILE_MAP[preset]] ?? PRESET_RESOLVED["medium"];
   const effectiveDuration = timeoutSeconds > 0 ? timeoutSeconds : resolved.defaultDurationSeconds;
 
@@ -108,28 +108,20 @@ function classifyRouting(
   if (cpu <= SIMPLE_MAX_CPU && mem <= SIMPLE_MAX_MEM && dur <= SIMPLE_MAX_DUR) {
     return {
       tier: "SIMPLE",
-      service: "Cloud Tasks",
-      reason: `${cpu} mCPU, ${mem} MiB, ${dur}s — within SIMPLE limits (≤500 mCPU, ≤512 MiB, ≤600s).`,
-    };
-  }
-
-  if (cpu <= MEDIUM_MAX_CPU && mem <= MEDIUM_MAX_MEM && dur <= MEDIUM_MAX_DUR) {
-    return {
-      tier: "MEDIUM",
       service: "Cloud Run Jobs",
-      reason: `${cpu} mCPU, ${mem} MiB, ${dur}s — within MEDIUM limits (≤4000 mCPU, ≤8192 MiB, ≤3600s).`,
+      reason: `${cpu} mCPU, ${mem} MiB, ${dur}s — within SIMPLE limits (≤4000 mCPU, ≤8192 MiB, ≤3600s).`,
     };
   }
 
-  // Exceeds MEDIUM thresholds
+  // Exceeds SIMPLE thresholds → Cloud Batch
   const reasons: string[] = [];
-  if (cpu > MEDIUM_MAX_CPU) reasons.push(`CPU ${cpu} mCPU > 4000`);
-  if (mem > MEDIUM_MAX_MEM) reasons.push(`memory ${mem} MiB > 8192`);
-  if (dur > MEDIUM_MAX_DUR) reasons.push(`duration ${dur}s > 3600`);
+  if (cpu > SIMPLE_MAX_CPU) reasons.push(`CPU ${cpu} mCPU > 4000`);
+  if (mem > SIMPLE_MAX_MEM) reasons.push(`memory ${mem} MiB > 8192`);
+  if (dur > SIMPLE_MAX_DUR) reasons.push(`duration ${dur}s > 3600`);
   return {
     tier: "COMPLEX",
     service: "Cloud Batch",
-    reason: `Exceeds MEDIUM limits: ${reasons.join(", ")}.`,
+    reason: `Exceeds SIMPLE limits: ${reasons.join(", ")}.`,
   };
 }
 
@@ -148,9 +140,8 @@ function isGpuSelected(method: ComputeMethod, preset: string, custom: string): b
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
 const TIER_STYLES: Record<RoutingTier, { bg: string; border: string; badge: string; dot: string }> = {
-  SIMPLE:  { bg: "bg-blue-50",  border: "border-blue-200",  badge: "bg-blue-100 text-blue-800",   dot: "bg-blue-500" },
-  MEDIUM:  { bg: "bg-green-50", border: "border-green-200", badge: "bg-green-100 text-green-800",  dot: "bg-green-500" },
-  COMPLEX: { bg: "bg-orange-50",border: "border-orange-200",badge: "bg-orange-100 text-orange-800",dot: "bg-orange-500" },
+  SIMPLE:  { bg: "bg-green-50",  border: "border-green-200",  badge: "bg-green-100 text-green-800",   dot: "bg-green-500" },
+  COMPLEX: { bg: "bg-orange-50", border: "border-orange-200", badge: "bg-orange-100 text-orange-800", dot: "bg-orange-500" },
 };
 
 function RoutingPreview({ decision }: { decision: RoutingDecision }) {
