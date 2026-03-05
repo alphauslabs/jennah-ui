@@ -35,12 +35,7 @@ export function NavigationBar() {
               >
                 Jobs
               </Link>
-              <Link
-                to="/dwp"
-                className={pathname.startsWith("/dwp") ? boldNav : normalNav}
-              >
-                Distributed
-              </Link>
+
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}

@@ -5,6 +5,15 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useGetJob } from "@/api/hooks/useGetJob";
 
+const statusStyles: Record<string, { className: string; label: string }> = {
+  PENDING:   { className: "bg-[#fef7e0] text-[#e37400]", label: "Pending" },
+  SCHEDULED: { className: "bg-[#e8f0fe] text-[#1a73e8]", label: "Scheduled" },
+  RUNNING:   { className: "bg-[#e8f0fe] text-[#1a73e8]", label: "Running" },
+  SUCCEEDED: { className: "bg-[#e6f4ea] text-[#137333]", label: "Succeeded" },
+  FAILED:    { className: "bg-[#fce8e6] text-[#c5221f]", label: "Failed" },
+  CANCELLED: { className: "bg-[#f1f3f4] text-[#5f6368]", label: "Cancelled" },
+};
+
 const ACTIVE_STATUSES = ["PENDING", "SCHEDULED", "RUNNING"];
 
 export default function ViewJob() {
@@ -36,10 +45,10 @@ export default function ViewJob() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
         <NavigationBar />
-        <main className="px-8 md:px-40 py-20 grow">
-          <p className="text-gray-500">Loading job...</p>
+        <main className="px-6 md:px-12 lg:px-0 py-8 grow max-w-[1100px] mx-auto w-full">
+          <p className="text-sm text-[#5f6368]">Loading job...</p>
         </main>
       </div>
     );
@@ -47,11 +56,11 @@ export default function ViewJob() {
 
   if (error || (!loading && !job)) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
         <NavigationBar />
-        <main className="px-8 md:px-40 py-20 grow">
-          <h1 className="text-3xl font-semibold text-black mb-4">Job not found</h1>
-          <p className="text-gray-500 mb-6">No job with ID <code className="font-mono bg-gray-100 px-1 rounded">{jobId}</code> was found.</p>
+        <main className="px-6 md:px-12 lg:px-0 py-8 grow max-w-[1100px] mx-auto w-full">
+          <h1 className="text-[22px] font-normal text-[#202124] mb-2">Job not found</h1>
+          <p className="text-sm text-[#5f6368] mb-6">No job with ID <code className="font-mono bg-[#f1f3f4] px-1.5 py-0.5 rounded text-[#202124]">{jobId}</code> was found.</p>
           <Link to="/jobs">
             <Button>Back to Jobs</Button>
           </Link>
@@ -61,18 +70,35 @@ export default function ViewJob() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
       <NavigationBar />
-      <main className="px-8 md:px-40 py-20 grow">
-        <div className="mb-20">
-          <h1 className="text-5xl md:text-6xl font-semibold text-black mb-4 leading-tight">
+      <main className="px-6 md:px-12 lg:px-0 py-8 grow max-w-[1100px] mx-auto w-full">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm mb-6">
+          <Link to="/jobs" className="text-[#1a73e8] hover:underline">Jobs</Link>
+          <svg className="h-4 w-4 text-[#80868b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-[#3c4043]">{job!.name || job!.imageUri.split("/").pop()}</span>
+        </nav>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-[22px] font-normal text-[#202124]">
             {job!.name || job!.imageUri.split("/").pop()}
           </h1>
-          <p className="text-xl text-gray-600 font-light">
-            View and manage your job configuration
-          </p>
+          {job!.status && (() => {
+            const s = statusStyles[job!.status] || statusStyles.PENDING;
+            return (
+              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${s.className}`}>
+                {s.label}
+              </span>
+            );
+          })()}
         </div>
-        <div className="mb-20">
+        <p className="text-sm text-[#5f6368] font-mono mb-8">{jobId}</p>
+
+        <div className="mb-12">
           <ViewJobForm
             jobId={jobId}
             jobName={job!.name || job!.imageUri.split("/").pop()}

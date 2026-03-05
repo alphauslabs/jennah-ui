@@ -22,6 +22,7 @@ interface JobWithMetadata {
   projectName: string;
   status: string;
   createdAt: string;
+  isDwp: boolean;
 }
 
 export default function Jobs() {
@@ -31,6 +32,7 @@ export default function Jobs() {
   });
   const [sortField, setSortField] = useState<string>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [showDwpOnly, setShowDwpOnly] = useState(false);
   const { fetchJobs, jobs: backendJobs, loading, error } = useListJobs();
   const { getCurrentTenant, tenant } = useGetCurrentTenant();
 
@@ -49,17 +51,25 @@ export default function Jobs() {
     : (backendJobs || []);
 
   // Map backend jobs to UI format
-  const jobs: JobWithMetadata[] = tenantFilteredJobs.map((job: any) => ({
-    $typeName: "JobCardJob",
-    jobId: job.jobId,
-    id: job.jobId,
-    tenantId: job.tenantId || "",
-    imageUri: job.imageUri || "",
-    workloadName: job.imageUri || job.jobId, // use imageUri as name
-    projectName: job.tenantId || "",
-    status: job.status || "PENDING",
-    createdAt: job.createdAt || "",
-  }));
+  const jobs: JobWithMetadata[] = tenantFilteredJobs.map((job: any) => {
+    let isDwp = false;
+    try {
+      const env = JSON.parse(job.envVarsJson || "{}");
+      isDwp = env["ENABLE_DISTRIBUTED_MODE"] === "true";
+    } catch { /* ignore */ }
+    return {
+      $typeName: "JobCardJob",
+      jobId: job.jobId,
+      id: job.jobId,
+      tenantId: job.tenantId || "",
+      imageUri: job.imageUri || "",
+      workloadName: job.imageUri || job.jobId,
+      projectName: job.tenantId || "",
+      status: job.status || "PENDING",
+      createdAt: job.createdAt || "",
+      isDwp,
+    };
+  });
 
   // Extract unique projects from jobs
   const availableProjects = useMemo(() => {
@@ -70,7 +80,10 @@ export default function Jobs() {
   // Apply filters
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      // If no filters are active, show all jobs
+      // DWP filter
+      if (showDwpOnly && !job.isDwp) return false;
+
+      // If no other filters are active, show all remaining jobs
       if (
         activeFilters.statuses.length === 0 &&
         activeFilters.projectNames.length === 0
@@ -96,7 +109,7 @@ export default function Jobs() {
 
       return true;
     });
-  }, [jobs, activeFilters]);
+  }, [jobs, activeFilters, showDwpOnly]);
 
   // Apply sorting
   const sortedJobs = useMemo(() => {
@@ -164,6 +177,35 @@ export default function Jobs() {
             activeFilters.statuses.length + activeFilters.projectNames.length
           }
         />
+
+        {/* DWP toggle */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => setShowDwpOnly(false)}
+            className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${
+              !showDwpOnly
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            All Jobs
+          </button>
+          <button
+            onClick={() => setShowDwpOnly(true)}
+            className={`px-4 py-1.5 text-sm rounded-full border transition-colors ${
+              showDwpOnly
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            DWP Jobs
+            {jobs.filter((j) => j.isDwp).length > 0 && (
+              <span className="ml-1.5 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">
+                {jobs.filter((j) => j.isDwp).length}
+              </span>
+            )}
+          </button>
+        </div>
 
         <JobsSort
           sortField={sortField}
