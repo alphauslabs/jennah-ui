@@ -137,6 +137,10 @@ function isGpuSelected(method: ComputeMethod, preset: string, custom: string): b
   return custom.includes("gpu");
 }
 
+function parseBooleanFlag(value: string | undefined): boolean {
+  return (value ?? "").trim().toLowerCase() === "true";
+}
+
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
 const TIER_STYLES: Record<RoutingTier, { bg: string; border: string; badge: string; dot: string }> = {
@@ -295,6 +299,20 @@ export function NewJobForm() {
         // Task group hints for the backend to configure parallelism
         envVarsMap["JENNAH_TASK_COUNT"] = String(dwpTaskCount);
         envVarsMap["JENNAH_PARALLELISM"] = String(dwpTaskCount);
+      }
+
+      // Keep distributed task hints consistent when ENABLE_DISTRIBUTED_MODE is set manually.
+      if (parseBooleanFlag(envVarsMap["ENABLE_DISTRIBUTED_MODE"])) {
+        const rawTaskCount = Number.parseInt(envVarsMap["JENNAH_TASK_COUNT"] ?? "", 10);
+        const normalizedTaskCount =
+          Number.isInteger(rawTaskCount) && rawTaskCount > 0 ? rawTaskCount : dwpTaskCount;
+
+        const rawParallelism = Number.parseInt(envVarsMap["JENNAH_PARALLELISM"] ?? "", 10);
+        const normalizedParallelism =
+          Number.isInteger(rawParallelism) && rawParallelism > 0 ? rawParallelism : normalizedTaskCount;
+
+        envVarsMap["JENNAH_TASK_COUNT"] = String(normalizedTaskCount);
+        envVarsMap["JENNAH_PARALLELISM"] = String(normalizedParallelism);
       }
 
       // timeoutSeconds is already computed in derived state above
