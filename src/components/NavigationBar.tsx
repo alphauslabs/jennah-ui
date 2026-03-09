@@ -21,7 +21,7 @@ export function NavigationBar() {
   };
 
   return (
-    <nav className="px-8 md:px-40 py-6 bg-white border-b border-gray-100">
+    <nav className="px-5 md:px-40 py-6 bg-white border-b border-gray-100">
       <div className="flex items-center justify-between">
         <a href="/">
           <img src={JennahLogo} alt="Jennah Logo" className="h-7" />

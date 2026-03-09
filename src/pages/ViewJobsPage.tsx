@@ -5,13 +5,42 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useGetJob } from "@/api/hooks/useGetJob";
 
-const statusStyles: Record<string, { className: string; label: string }> = {
-  PENDING:   { className: "bg-[#fef7e0] text-[#e37400]", label: "Pending" },
-  SCHEDULED: { className: "bg-[#e8f0fe] text-[#1a73e8]", label: "Scheduled" },
-  RUNNING:   { className: "bg-[#e8f0fe] text-[#1a73e8]", label: "Running" },
-  SUCCEEDED: { className: "bg-[#e6f4ea] text-[#137333]", label: "Succeeded" },
-  FAILED:    { className: "bg-[#fce8e6] text-[#c5221f]", label: "Failed" },
-  CANCELLED: { className: "bg-[#f1f3f4] text-[#5f6368]", label: "Cancelled" },
+
+// Status badge logic copied from JobsCard
+const getStatusInfo = (status: string): { className: string; label: string } => {
+  const statusMap: Record<string, { className: string; label: string }> = {
+    RUNNING: {
+      className:
+        "bg-blue-50 text-sm text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+      label: "Running",
+    },
+    COMPLETED: {
+      className:
+        "bg-green-50 text-sm text-green-700 dark:bg-green-950 dark:text-green-300",
+      label: "Completed",
+    },
+    PENDING: {
+      className:
+        "bg-sky-50 text-sm text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+      label: "Pending",
+    },
+    SCHEDULED: {
+      className:
+        "bg-purple-50 text-sm text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+      label: "Scheduled",
+    },
+    FAILED: {
+      className:
+        "bg-red-50 text-sm text-red-700 dark:bg-red-950 dark:text-red-300",
+      label: "Failed",
+    },
+    CANCELLED: {
+      className:
+        "bg-red-50 text-sm text-red-700 dark:bg-red-950 dark:text-red-300",
+      label: "Cancelled",
+    },
+  };
+  return statusMap[status] || statusMap.PENDING;
 };
 
 const ACTIVE_STATUSES = ["PENDING", "SCHEDULED", "RUNNING"];
@@ -70,10 +99,11 @@ export default function ViewJob() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col ">
       <NavigationBar />
-      <main className="px-6 md:px-12 lg:px-0 py-8 grow max-w-[1100px] mx-auto w-full">
+      <main className="px-6 md:px-12 lg:px-40 py-8 grow flex flex-col jusitfy-center items-center mx-auto w-full">
         {/* Breadcrumb */}
+        <div className="max-w-[950px]  w-full">
         <nav className="flex items-center gap-1.5 text-sm mb-6">
           <Link to="/jobs" className="text-[#1a73e8] hover:underline">Jobs</Link>
           <svg className="h-4 w-4 text-[#80868b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -88,17 +118,15 @@ export default function ViewJob() {
             {job!.name || job!.imageUri.split("/").pop()}
           </h1>
           {job!.status && (() => {
-            const s = statusStyles[job!.status] || statusStyles.PENDING;
+            const s = getStatusInfo(job!.status);
             return (
-              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${s.className}`}>
-                {s.label}
-              </span>
+              <span className={`px-2.5 py-0.5 rounded-full ${s.className}`}>{s.label}</span>
             );
           })()}
         </div>
         <p className="text-sm text-[#5f6368] font-mono mb-8">{jobId}</p>
-
-        <div className="mb-12">
+</div>
+        <div className="mb-12 max-w-[950px] w-full">
           <ViewJobForm
             jobId={jobId}
             jobName={job!.name || job!.imageUri.split("/").pop()}
