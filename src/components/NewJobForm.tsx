@@ -141,6 +141,31 @@ function parseBooleanFlag(value: string | undefined): boolean {
   return (value ?? "").trim().toLowerCase() === "true";
 }
 
+function findEnvVarKey(envVars: Record<string, string>, key: string): string | undefined {
+  return Object.keys(envVars).find((existingKey) => existingKey.toLowerCase() === key.toLowerCase());
+}
+
+function getEnvVarValue(envVars: Record<string, string>, key: string): string | undefined {
+  const existingKey = findEnvVarKey(envVars, key);
+  return existingKey ? envVars[existingKey] : undefined;
+}
+
+function setEnvVar(envVars: Record<string, string>, key: string, value: string): void {
+  const existingKey = findEnvVarKey(envVars, key) ?? key;
+  envVars[existingKey] = value;
+}
+
+function setEnvVarIfBlank(envVars: Record<string, string>, key: string, value: string): void {
+  const existingKey = findEnvVarKey(envVars, key);
+  if (!existingKey) {
+    envVars[key] = value;
+    return;
+  }
+  if ((envVars[existingKey] ?? "").trim() === "") {
+    envVars[existingKey] = value;
+  }
+}
+
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
 const TIER_STYLES: Record<RoutingTier, { bg: string; border: string; badge: string; dot: string }> = {
@@ -229,7 +254,6 @@ export function NewJobForm() {
   const [dwpTaskCount, setDwpTaskCount] = useState(4);
   const [dwpDistributionMode, setDwpDistributionMode] = useState("BYTE_RANGE");
   const [dwpInputPath, setDwpInputPath] = useState("");
-  const [dwpInputDataSize, setDwpInputDataSize] = useState(0);
   const [dwpOutputPath, setDwpOutputPath] = useState("");
 
   // Success state — shown after submit before navigating away
@@ -269,7 +293,6 @@ export function NewJobForm() {
       if (dwpTaskCount < 1 || dwpTaskCount > 100 || !Number.isInteger(dwpTaskCount)) errs.dwpTaskCount = "Task count: 1–100.";
       if (!dwpInputPath.trim()) errs.dwpInputPath = "Input data path is required for distributed processing.";
       else if (!dwpInputPath.startsWith("gs://")) errs.dwpInputPath = "Must be a GCS path starting with gs://";
-      if (dwpInputDataSize < 0) errs.dwpInputDataSize = "Input data size must be ≥ 0.";
       if (!dwpOutputPath.trim()) errs.dwpOutputPath = "Output base path is required for distributed processing.";
       else if (!dwpOutputPath.startsWith("gs://")) errs.dwpOutputPath = "Must be a GCS path starting with gs://";
     }
@@ -290,29 +313,29 @@ export function NewJobForm() {
 
       // Inject DWP environment variables when distributed processing is enabled
       if (dwpEnabled) {
-        envVarsMap["ENABLE_DISTRIBUTED_MODE"] = "true";
-        envVarsMap["DISTRIBUTION_MODE"] = dwpDistributionMode;
-        envVarsMap["INPUT_DATA_PATH"] = dwpInputPath;
-        envVarsMap["INPUT_DATA_SIZE"] = String(dwpInputDataSize);
-        envVarsMap["OUTPUT_BASE_PATH"] = dwpOutputPath;
-        envVarsMap["JOB_ID"] = jobName || "dwp-job";
+        setEnvVar(envVarsMap, "ENABLE_DISTRIBUTED_MODE", "true");
+        setEnvVar(envVarsMap, "DISTRIBUTION_MODE", dwpDistributionMode);
+        setEnvVar(envVarsMap, "INPUT_DATA_PATH", dwpInputPath);
+        setEnvVar(envVarsMap, "OUTPUT_BASE_PATH", dwpOutputPath);
+        setEnvVar(envVarsMap, "JOB_ID", jobName || "dwp-job");
         // Task group hints for the backend to configure parallelism
-        envVarsMap["JENNAH_TASK_COUNT"] = String(dwpTaskCount);
-        envVarsMap["JENNAH_PARALLELISM"] = String(dwpTaskCount);
+        setEnvVar(envVarsMap, "JENNAH_TASK_COUNT", String(dwpTaskCount));
+        setEnvVar(envVarsMap, "JENNAH_PARALLELISM", String(dwpTaskCount));
+        setEnvVarIfBlank(envVarsMap, "SENTIMENT_PROVIDER", "lexicon");
       }
 
       // Keep distributed task hints consistent when ENABLE_DISTRIBUTED_MODE is set manually.
-      if (parseBooleanFlag(envVarsMap["ENABLE_DISTRIBUTED_MODE"])) {
-        const rawTaskCount = Number.parseInt(envVarsMap["JENNAH_TASK_COUNT"] ?? "", 10);
+      if (parseBooleanFlag(getEnvVarValue(envVarsMap, "ENABLE_DISTRIBUTED_MODE"))) {
+        const rawTaskCount = Number.parseInt(getEnvVarValue(envVarsMap, "JENNAH_TASK_COUNT") ?? "", 10);
         const normalizedTaskCount =
           Number.isInteger(rawTaskCount) && rawTaskCount > 0 ? rawTaskCount : dwpTaskCount;
 
-        const rawParallelism = Number.parseInt(envVarsMap["JENNAH_PARALLELISM"] ?? "", 10);
+        const rawParallelism = Number.parseInt(getEnvVarValue(envVarsMap, "JENNAH_PARALLELISM") ?? "", 10);
         const normalizedParallelism =
           Number.isInteger(rawParallelism) && rawParallelism > 0 ? rawParallelism : normalizedTaskCount;
 
-        envVarsMap["JENNAH_TASK_COUNT"] = String(normalizedTaskCount);
-        envVarsMap["JENNAH_PARALLELISM"] = String(normalizedParallelism);
+        setEnvVar(envVarsMap, "JENNAH_TASK_COUNT", String(normalizedTaskCount));
+        setEnvVar(envVarsMap, "JENNAH_PARALLELISM", String(normalizedParallelism));
       }
 
       // timeoutSeconds is already computed in derived state above
@@ -552,11 +575,10 @@ export function NewJobForm() {
                 className="w-full text-sm border rounded-md px-3 py-2 bg-white text-black"
               >
                 <option value="BYTE_RANGE">Byte Range — split file by byte offsets</option>
-                <option value="LINE_BASED">Line Based — split file by line count</option>
-                <option value="ROUND_ROBIN">Round Robin — distribute records evenly</option>
+                <option value="RECORD">Record Aware — keep JSON objects and lines intact</option>
               </select>
               <p className="text-xs text-muted-foreground">
-                BYTE_RANGE is recommended for large files. Each instance gets a contiguous byte range.
+                Use BYTE_RANGE for raw text throughput. Use RECORD for JSON and sentiment-focused jobs so records stay intact.
               </p>
             </div>
 
@@ -574,25 +596,7 @@ export function NewJobForm() {
               />
               {validationErrors.dwpInputPath && <p className="text-xs text-red-500">{validationErrors.dwpInputPath}</p>}
               <p className="text-xs text-muted-foreground">
-                GCS path to the shared input file. All instances read from this path.
-              </p>
-            </div>
-
-            {/* Input Data Size */}
-            <div className="grid gap-2">
-              <Label htmlFor="dwp-input-size">Input Data Size (bytes)</Label>
-              <Input
-                id="dwp-input-size"
-                type="number"
-                min={0}
-                placeholder="e.g., 86888890"
-                value={dwpInputDataSize || ""}
-                onChange={(e) => setDwpInputDataSize(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-64"
-              />
-              {validationErrors.dwpInputDataSize && <p className="text-xs text-red-500">{validationErrors.dwpInputDataSize}</p>}
-              <p className="text-xs text-muted-foreground">
-                File size in bytes. Used for byte-range calculation. Set to 0 if unknown (auto-detection at runtime).
+                GCS path to the shared input file. The worker resolves the object size automatically from this path.
               </p>
             </div>
 
@@ -619,7 +623,7 @@ export function NewJobForm() {
               taskCount={dwpTaskCount}
               inputPath={dwpInputPath}
               outputPath={dwpOutputPath}
-              inputDataSize={dwpInputDataSize}
+              inputDataSize={0}
               distributionMode={dwpDistributionMode}
             />
           </div>
