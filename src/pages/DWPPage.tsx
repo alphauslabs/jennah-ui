@@ -303,7 +303,7 @@ export default function DWPPage() {
           errorMessage: job.errorMessage || "",
           gcpBatchJobPath: job.gcpBatchJobPath || "",
           taskCount: parseInt(env["JENNAH_TASK_COUNT"] || "1", 10),
-          distributionMode: env["DISTRIBUTION_MODE"] || "BYTE_RANGE",
+          distributionMode: env["DISTRIBUTION_MODE"] || "RECORD",
           inputPath: env["INPUT_DATA_PATH"] || "",
           inputDataSize: parseInt(env["INPUT_DATA_SIZE"] || "0", 10),
           outputPath: env["OUTPUT_BASE_PATH"] || "",
@@ -399,11 +399,11 @@ export default function DWPPage() {
                 and automatic GCS input/output management. Jobs are routed to GCP Cloud Batch.
               </p>
             </div>
-            <Link to="/jobs/create">
-              <Button size="lg" className="px-8">
+            <Button asChild size="lg" className="px-8">
+              <Link to="/jobs/create" reloadDocument>
                 New DWP Job
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -426,9 +426,11 @@ export default function DWPPage() {
                 </svg>
               </div>
               <p className="text-gray-500 text-sm mb-4">No distributed processing jobs yet.</p>
-              <Link to="/jobs/create">
-                <Button>Create Your First DWP Job</Button>
-              </Link>
+              <Button asChild>
+                <Link to="/jobs/create" reloadDocument>
+                  Create Your First DWP Job
+                </Link>
+              </Button>
             </div>
           )}
           {!loading && dwpJobs.length > 0 && (
@@ -562,7 +564,7 @@ export default function DWPPage() {
                   { key: "INPUT_DATA_PATH", desc: "GCS path to shared input file", example: "gs://bucket/input/data.txt" },
                   { key: "INPUT_DATA_SIZE", desc: "Optional file size in bytes; omitted values are auto-detected from GCS", example: "86888890" },
                   { key: "OUTPUT_BASE_PATH", desc: "GCS prefix for output files", example: "gs://bucket/output" },
-                  { key: "DISTRIBUTION_MODE", desc: "How data is split across instances", example: "BYTE_RANGE or RECORD" },
+                  { key: "DISTRIBUTION_MODE", desc: "How data is split across instances; RECORD keeps lines/objects intact", example: "RECORD or BYTE_RANGE" },
                   { key: "ENABLE_DISTRIBUTED_MODE", desc: "Enable distributed processing", example: "true" },
                 ].map((row) => (
                   <tr key={row.key}>

@@ -52,6 +52,9 @@ const MACHINE_RESOURCES: Record<string, { cpuMillis: number; memoryMib: number; 
 };
 
 const CUSTOM_MACHINES = Object.keys(MACHINE_RESOURCES);
+const DEFAULT_DWP_IMAGE_URI =
+  import.meta.env.VITE_DEFAULT_DWP_IMAGE_URI ||
+  "us-central1-docker.pkg.dev/labs-169405/demo-job-repo/demo-job:latest";
 
 // Resolved resource values for each preset (matches backend navigator package).
 // Used by the frontend classifier to predict routing tier before submission.
@@ -252,7 +255,7 @@ export function NewJobForm() {
   // Distributed Workload Processing (DWP)
   const [dwpEnabled, setDwpEnabled] = useState(false);
   const [dwpTaskCount, setDwpTaskCount] = useState(4);
-  const [dwpDistributionMode, setDwpDistributionMode] = useState("BYTE_RANGE");
+  const [dwpDistributionMode, setDwpDistributionMode] = useState("RECORD");
   const [dwpInputPath, setDwpInputPath] = useState("");
   const [dwpOutputPath, setDwpOutputPath] = useState("");
 
@@ -269,6 +272,9 @@ export function NewJobForm() {
   const gpuSelected = isGpuSelected(computeMethod, preset, customMachine);
   const spotDisabled = gpuSelected;
   const timeoutSeconds = resolveDurationSeconds(hours, minutes, seconds);
+  const effectiveContainerImage = dwpEnabled
+    ? DEFAULT_DWP_IMAGE_URI
+    : containerImage.trim();
   // DWP always routes to COMPLEX/Cloud Batch
   const routingDecision = dwpEnabled
     ? { tier: "COMPLEX" as RoutingTier, service: "Cloud Batch" as const, reason: `Distributed processing: ${dwpTaskCount} parallel instances with ${dwpDistributionMode} distribution → Cloud Batch.` }
@@ -281,7 +287,7 @@ export function NewJobForm() {
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!jobName.trim()) errs.jobName = "Job name is required.";
-    if (!containerImage.trim()) errs.containerImage = "Container image URI is required.";
+    if (!effectiveContainerImage) errs.containerImage = "Container image URI is required.";
     if (hours < 0 || hours > 4 || !Number.isInteger(hours)) errs.hours = "Hours: 0–4.";
     if (minutes < 0 || minutes > 59 || !Number.isInteger(minutes)) errs.minutes = "Minutes: 0–59.";
     if (seconds < 0 || seconds > 59 || !Number.isInteger(seconds)) errs.seconds = "Seconds: 0–59.";
@@ -344,7 +350,7 @@ export function NewJobForm() {
         // Preset path: send resource_profile + timeout override only.
         // CPU/memory come from the preset on the backend side.
         request = create(SubmitJobRequestSchema, {
-          imageUri: containerImage,
+          imageUri: effectiveContainerImage,
           name: jobName,
           envVars: envVarsMap,
           serviceAccount: serviceAccount || "",
@@ -360,7 +366,7 @@ export function NewJobForm() {
         // Do not send resource_profile — resource_override takes full precedence.
         const resources = MACHINE_RESOURCES[customMachine] ?? MACHINE_RESOURCES["e2-standard-4"];
         request = create(SubmitJobRequestSchema, {
-          imageUri: containerImage,
+          imageUri: effectiveContainerImage,
           name: jobName,
           envVars: envVarsMap,
           serviceAccount: serviceAccount || "",
@@ -407,7 +413,10 @@ export function NewJobForm() {
     <div className="space-y-4">
 
       {/* ── 1. Basic Information (always visible) ── */}
-      <Section title="Basic Information" subtitle="Job name and container image URI.">
+      <Section
+        title="Basic Information"
+        subtitle={dwpEnabled ? "Job name and automatic DWP container selection." : "Job name and container image URI."}
+      >
         <div className="grid gap-2">
           <Label htmlFor="job-name">Job Name <span className="text-red-500">*</span></Label>
           <Input
@@ -426,17 +435,30 @@ export function NewJobForm() {
           {validationErrors.jobName && <p className="text-xs text-red-500">{validationErrors.jobName}</p>}
           <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only. Max 54 chars.</p>
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="container-image">Container Image URI <span className="text-red-500">*</span></Label>
-          <Input
-            id="container-image"
-            placeholder="gcr.io/my-project/etl:latest"
-            value={containerImage}
-            onChange={(e) => setContainerImage(e.target.value)}
-          />
-          {validationErrors.containerImage && <p className="text-xs text-red-500">{validationErrors.containerImage}</p>}
-          <p className="text-xs text-muted-foreground">Recommend pinning a sha256 digest for security.</p>
-        </div>
+        {!dwpEnabled && (
+          <div className="grid gap-2">
+            <Label htmlFor="container-image">Container Image URI <span className="text-red-500">*</span></Label>
+            <Input
+              id="container-image"
+              placeholder="gcr.io/my-project/etl:latest"
+              value={containerImage}
+              onChange={(e) => setContainerImage(e.target.value)}
+            />
+            {validationErrors.containerImage && <p className="text-xs text-red-500">{validationErrors.containerImage}</p>}
+            <p className="text-xs text-muted-foreground">Recommend pinning a sha256 digest for security.</p>
+          </div>
+        )}
+        {dwpEnabled && (
+          <div className="grid gap-2">
+            <Label>DWP Container Image</Label>
+            <div className="rounded-md border bg-muted/30 px-3 py-3">
+              <p className="font-mono text-xs break-all text-gray-700">{effectiveContainerImage}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Distributed jobs always use the built-in demo-job image so sentiment fields are produced even if another container image was entered earlier.
+            </p>
+          </div>
+        )}
       </Section>
 
       {/* ── 2. Compute Resources (always visible) ── */}
@@ -574,11 +596,11 @@ export function NewJobForm() {
                 onChange={(e) => setDwpDistributionMode(e.target.value)}
                 className="w-full text-sm border rounded-md px-3 py-2 bg-white text-black"
               >
-                <option value="BYTE_RANGE">Byte Range — split file by byte offsets</option>
                 <option value="RECORD">Record Aware — keep JSON objects and lines intact</option>
+                <option value="BYTE_RANGE">Byte Range — split file by byte offsets</option>
               </select>
               <p className="text-xs text-muted-foreground">
-                Use BYTE_RANGE for raw text throughput. Use RECORD for JSON and sentiment-focused jobs so records stay intact.
+                RECORD is the safer default for text, JSON, and sentiment jobs because each instance gets whole records instead of partial lines.
               </p>
             </div>
 
@@ -853,7 +875,7 @@ export function NewJobForm() {
       <div className="flex w-auto pt-2 pb-8">
         <Button
           onClick={handleSubmit}
-          disabled={!jobName.trim() || !containerImage.trim() || loading || !!successInfo}
+          disabled={!jobName.trim() || !effectiveContainerImage || loading || !!successInfo}
           size="lg"
           className="px-8"
         >
