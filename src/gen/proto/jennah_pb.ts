@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file proto/jennah.proto.
  */
 export const file_proto_jennah: GenFile = /*@__PURE__*/
-  fileDesc("ChJwcm90by9qZW5uYWgucHJvdG8SCWplbm5haC52MSJcChBSZXNvdXJjZU92ZXJyaWRlEhIKCmNwdV9taWxsaXMYASABKAMSEgoKbWVtb3J5X21pYhgCIAEoAxIgChhtYXhfcnVuX2R1cmF0aW9uX3NlY29uZHMYAyABKAMi8wIKEFN1Ym1pdEpvYlJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhEKCWltYWdlX3VyaRgCIAEoCRI6CghlbnZfdmFycxgDIAMoCzIoLmplbm5haC52MS5TdWJtaXRKb2JSZXF1ZXN0LkVudlZhcnNFbnRyeRIYChByZXNvdXJjZV9wcm9maWxlGAQgASgJEjYKEXJlc291cmNlX292ZXJyaWRlGAUgASgLMhsuamVubmFoLnYxLlJlc291cmNlT3ZlcnJpZGUSDAoEbmFtZRgGIAEoCRIUCgxtYWNoaW5lX3R5cGUYByABKAkSGQoRYm9vdF9kaXNrX3NpemVfZ2IYCCABKAMSFAoMdXNlX3Nwb3Rfdm1zGAkgASgIEhcKD3NlcnZpY2VfYWNjb3VudBgKIAEoCRIQCghjb21tYW5kcxgLIAMoCRouCgxFbnZWYXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKYAQoRU3VibWl0Sm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIXCg93b3JrZXJfYXNzaWduZWQYAyABKAkSGAoQY29tcGxleGl0eV9sZXZlbBgEIAEoCRIYChBhc3NpZ25lZF9zZXJ2aWNlGAUgASgJEhYKDnJvdXRpbmdfcmVhc29uGAYgASgJIhEKD0xpc3RKb2JzUmVxdWVzdCIwChBMaXN0Sm9ic1Jlc3BvbnNlEhwKBGpvYnMYASADKAsyDi5qZW5uYWgudjEuSm9iIt8DCgNKb2ISDgoGam9iX2lkGAEgASgJEhEKCXRlbmFudF9pZBgCIAEoCRIRCglpbWFnZV91cmkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSEgoKdXBkYXRlZF9hdBgGIAEoCRIUCgxzY2hlZHVsZWRfYXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIUCgxjb21wbGV0ZWRfYXQYCSABKAkSEwoLcmV0cnlfY291bnQYCiABKAMSEwoLbWF4X3JldHJpZXMYCyABKAMSFQoNZXJyb3JfbWVzc2FnZRgMIAEoCRIaChJnY3BfYmF0Y2hfam9iX3BhdGgYDSABKAkSEAoIY29tbWFuZHMYDiADKAkSFQoNZW52X3ZhcnNfanNvbhgPIAEoCRIcChRnY3BfYmF0Y2hfdGFza19ncm91cBgQIAEoCRIMCgRuYW1lGBEgASgJEhgKEHJlc291cmNlX3Byb2ZpbGUYEiABKAkSFAoMbWFjaGluZV90eXBlGBMgASgJEhkKEWJvb3RfZGlza19zaXplX2diGBQgASgDEhQKDHVzZV9zcG90X3ZtcxgVIAEoCBIXCg9zZXJ2aWNlX2FjY291bnQYFiABKAkiGQoXR2V0Q3VycmVudFRlbmFudFJlcXVlc3QibQoYR2V0Q3VycmVudFRlbmFudFJlc3BvbnNlEhEKCXRlbmFudF9pZBgBIAEoCRISCgp1c2VyX2VtYWlsGAIgASgJEhYKDm9hdXRoX3Byb3ZpZGVyGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiIgoQQ2FuY2VsSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkiMwoRQ2FuY2VsSm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCSIiChBEZWxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI0ChFEZWxldGVKb2JSZXNwb25zZRIOCgZqb2JfaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIfCg1HZXRKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5qZW5uYWgudjEuSm9iKo0BCg9Db21wbGV4aXR5TGV2ZWwSIAocQ09NUExFWElUWV9MRVZFTF9VTlNQRUNJRklFRBAAEhsKF0NPTVBMRVhJVFlfTEVWRUxfU0lNUExFEAESHAoYQ09NUExFWElUWV9MRVZFTF9DT01QTEVYEAMiBAgCEAIqF0NPTVBMRVhJVFlfTEVWRUxfTUVESVVNKp0BCg9Bc3NpZ25lZFNlcnZpY2USIAocQVNTSUdORURfU0VSVklDRV9VTlNQRUNJRklFRBAAEiIKHkFTU0lHTkVEX1NFUlZJQ0VfQ0xPVURfUlVOX0pPQhACEiAKHEFTU0lHTkVEX1NFUlZJQ0VfQ0xPVURfQkFUQ0gQAyIECAEQASocQVNTSUdORURfU0VSVklDRV9DTE9VRF9UQVNLUzLMAwoRRGVwbG95bWVudFNlcnZpY2USRgoJU3VibWl0Sm9iEhsuamVubmFoLnYxLlN1Ym1pdEpvYlJlcXVlc3QaHC5qZW5uYWgudjEuU3VibWl0Sm9iUmVzcG9uc2USQwoITGlzdEpvYnMSGi5qZW5uYWgudjEuTGlzdEpvYnNSZXF1ZXN0GhsuamVubmFoLnYxLkxpc3RKb2JzUmVzcG9uc2USWwoQR2V0Q3VycmVudFRlbmFudBIiLmplbm5haC52MS5HZXRDdXJyZW50VGVuYW50UmVxdWVzdBojLmplbm5haC52MS5HZXRDdXJyZW50VGVuYW50UmVzcG9uc2USRgoJQ2FuY2VsSm9iEhsuamVubmFoLnYxLkNhbmNlbEpvYlJlcXVlc3QaHC5qZW5uYWgudjEuQ2FuY2VsSm9iUmVzcG9uc2USRgoJRGVsZXRlSm9iEhsuamVubmFoLnYxLkRlbGV0ZUpvYlJlcXVlc3QaHC5qZW5uYWgudjEuRGVsZXRlSm9iUmVzcG9uc2USPQoGR2V0Sm9iEhguamVubmFoLnYxLkdldEpvYlJlcXVlc3QaGS5qZW5uYWgudjEuR2V0Sm9iUmVzcG9uc2VCMlowZ2l0aHViLmNvbS9hbHBoYXVzbGFicy9qZW5uYWgvZ2VuL3Byb3RvO2plbm5haHYxYgZwcm90bzM");
+  fileDesc("ChJwcm90by9qZW5uYWgucHJvdG8SCWplbm5haC52MSJcChBSZXNvdXJjZU92ZXJyaWRlEhIKCmNwdV9taWxsaXMYASABKAMSEgoKbWVtb3J5X21pYhgCIAEoAxIgChhtYXhfcnVuX2R1cmF0aW9uX3NlY29uZHMYAyABKAMi8wIKEFN1Ym1pdEpvYlJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhEKCWltYWdlX3VyaRgCIAEoCRI6CghlbnZfdmFycxgDIAMoCzIoLmplbm5haC52MS5TdWJtaXRKb2JSZXF1ZXN0LkVudlZhcnNFbnRyeRIYChByZXNvdXJjZV9wcm9maWxlGAQgASgJEjYKEXJlc291cmNlX292ZXJyaWRlGAUgASgLMhsuamVubmFoLnYxLlJlc291cmNlT3ZlcnJpZGUSDAoEbmFtZRgGIAEoCRIUCgxtYWNoaW5lX3R5cGUYByABKAkSGQoRYm9vdF9kaXNrX3NpemVfZ2IYCCABKAMSFAoMdXNlX3Nwb3Rfdm1zGAkgASgIEhcKD3NlcnZpY2VfYWNjb3VudBgKIAEoCRIQCghjb21tYW5kcxgLIAMoCRouCgxFbnZWYXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKYAQoRU3VibWl0Sm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIXCg93b3JrZXJfYXNzaWduZWQYAyABKAkSGAoQY29tcGxleGl0eV9sZXZlbBgEIAEoCRIYChBhc3NpZ25lZF9zZXJ2aWNlGAUgASgJEhYKDnJvdXRpbmdfcmVhc29uGAYgASgJIhEKD0xpc3RKb2JzUmVxdWVzdCIwChBMaXN0Sm9ic1Jlc3BvbnNlEhwKBGpvYnMYASADKAsyDi5qZW5uYWgudjEuSm9iIt0ECgNKb2ISDgoGam9iX2lkGAEgASgJEhEKCXRlbmFudF9pZBgCIAEoCRIRCglpbWFnZV91cmkYAyABKAkSDgoGc3RhdHVzGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSEgoKdXBkYXRlZF9hdBgGIAEoCRIUCgxzY2hlZHVsZWRfYXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIUCgxjb21wbGV0ZWRfYXQYCSABKAkSEwoLcmV0cnlfY291bnQYCiABKAMSEwoLbWF4X3JldHJpZXMYCyABKAMSFQoNZXJyb3JfbWVzc2FnZRgMIAEoCRIaChJnY3BfYmF0Y2hfam9iX3BhdGgYDSABKAkSEAoIY29tbWFuZHMYDiADKAkSFQoNZW52X3ZhcnNfanNvbhgPIAEoCRIcChRnY3BfYmF0Y2hfdGFza19ncm91cBgQIAEoCRIMCgRuYW1lGBEgASgJEhgKEHJlc291cmNlX3Byb2ZpbGUYEiABKAkSFAoMbWFjaGluZV90eXBlGBMgASgJEhkKEWJvb3RfZGlza19zaXplX2diGBQgASgDEhQKDHVzZV9zcG90X3ZtcxgVIAEoCBIXCg9zZXJ2aWNlX2FjY291bnQYFiABKAkSGAoQY29tcGxleGl0eV9sZXZlbBgXIAEoCRIYChBhc3NpZ25lZF9zZXJ2aWNlGBggASgJEhIKCm1lbW9yeV9taWIYGSABKAMSEgoKY3B1X21pbGxpcxgaIAEoAxIgChhtYXhfcnVuX2R1cmF0aW9uX3NlY29uZHMYGyABKAMiGQoXR2V0Q3VycmVudFRlbmFudFJlcXVlc3QibQoYR2V0Q3VycmVudFRlbmFudFJlc3BvbnNlEhEKCXRlbmFudF9pZBgBIAEoCRISCgp1c2VyX2VtYWlsGAIgASgJEhYKDm9hdXRoX3Byb3ZpZGVyGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiIgoQQ2FuY2VsSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkiMwoRQ2FuY2VsSm9iUmVzcG9uc2USDgoGam9iX2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCSIiChBEZWxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI0ChFEZWxldGVKb2JSZXNwb25zZRIOCgZqb2JfaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIfCg1HZXRKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5qZW5uYWgudjEuSm9iIr8BCgxOb3RpZmljYXRpb24SCgoCaWQYASABKAkSDgoGam9iX2lkGAIgASgJEhAKCGpvYl9uYW1lGAMgASgJEhQKDGZpbmFsX3N0YXR1cxgEIAEoCRIUCgxzZXJ2aWNlX3RpZXIYBSABKAkSGAoQYXNzaWduZWRfc2VydmljZRgGIAEoCRITCgtvY2N1cnJlZF9hdBgHIAEoAxIVCg1lcnJvcl9tZXNzYWdlGAggASgJEg8KB2lzX3JlYWQYCSABKAgiKQoYTGlzdE5vdGlmaWNhdGlvbnNSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFImEKGUxpc3ROb3RpZmljYXRpb25zUmVzcG9uc2USLgoNbm90aWZpY2F0aW9ucxgBIAMoCzIXLmplbm5haC52MS5Ob3RpZmljYXRpb24SFAoMdW5yZWFkX2NvdW50GAIgASgFIjEKFkFja05vdGlmaWNhdGlvblJlcXVlc3QSFwoPbm90aWZpY2F0aW9uX2lkGAEgASgJIioKF0Fja05vdGlmaWNhdGlvblJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgqjQEKD0NvbXBsZXhpdHlMZXZlbBIgChxDT01QTEVYSVRZX0xFVkVMX1VOU1BFQ0lGSUVEEAASGwoXQ09NUExFWElUWV9MRVZFTF9TSU1QTEUQARIcChhDT01QTEVYSVRZX0xFVkVMX0NPTVBMRVgQAyIECAIQAioXQ09NUExFWElUWV9MRVZFTF9NRURJVU0qnQEKD0Fzc2lnbmVkU2VydmljZRIgChxBU1NJR05FRF9TRVJWSUNFX1VOU1BFQ0lGSUVEEAASIgoeQVNTSUdORURfU0VSVklDRV9DTE9VRF9SVU5fSk9CEAISIAocQVNTSUdORURfU0VSVklDRV9DTE9VRF9CQVRDSBADIgQIARABKhxBU1NJR05FRF9TRVJWSUNFX0NMT1VEX1RBU0tTMoYFChFEZXBsb3ltZW50U2VydmljZRJGCglTdWJtaXRKb2ISGy5qZW5uYWgudjEuU3VibWl0Sm9iUmVxdWVzdBocLmplbm5haC52MS5TdWJtaXRKb2JSZXNwb25zZRJDCghMaXN0Sm9icxIaLmplbm5haC52MS5MaXN0Sm9ic1JlcXVlc3QaGy5qZW5uYWgudjEuTGlzdEpvYnNSZXNwb25zZRJbChBHZXRDdXJyZW50VGVuYW50EiIuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXF1ZXN0GiMuamVubmFoLnYxLkdldEN1cnJlbnRUZW5hbnRSZXNwb25zZRJGCglDYW5jZWxKb2ISGy5qZW5uYWgudjEuQ2FuY2VsSm9iUmVxdWVzdBocLmplbm5haC52MS5DYW5jZWxKb2JSZXNwb25zZRJGCglEZWxldGVKb2ISGy5qZW5uYWgudjEuRGVsZXRlSm9iUmVxdWVzdBocLmplbm5haC52MS5EZWxldGVKb2JSZXNwb25zZRI9CgZHZXRKb2ISGC5qZW5uYWgudjEuR2V0Sm9iUmVxdWVzdBoZLmplbm5haC52MS5HZXRKb2JSZXNwb25zZRJeChFMaXN0Tm90aWZpY2F0aW9ucxIjLmplbm5haC52MS5MaXN0Tm90aWZpY2F0aW9uc1JlcXVlc3QaJC5qZW5uYWgudjEuTGlzdE5vdGlmaWNhdGlvbnNSZXNwb25zZRJYCg9BY2tOb3RpZmljYXRpb24SIS5qZW5uYWgudjEuQWNrTm90aWZpY2F0aW9uUmVxdWVzdBoiLmplbm5haC52MS5BY2tOb3RpZmljYXRpb25SZXNwb25zZUIyWjBnaXRodWIuY29tL2FscGhhdXNsYWJzL2plbm5haC9nZW4vcHJvdG87amVubmFodjFiBnByb3RvMw");
 
 /**
  * ResourceOverride allows callers to specify custom compute resource values.
@@ -341,6 +341,37 @@ export type Job = Message<"jennah.v1.Job"> & {
    * @generated from field: string service_account = 22;
    */
   serviceAccount: string;
+
+  /**
+   * Complexity tier assigned by the routing classifier: SIMPLE or COMPLEX.
+   *
+   * @generated from field: string complexity_level = 23;
+   */
+  complexityLevel: string;
+
+  /**
+   * GCP service assigned to execute this job: CLOUD_RUN_JOB or CLOUD_BATCH.
+   *
+   * @generated from field: string assigned_service = 24;
+   */
+  assignedService: string;
+
+  /**
+   * Resource override values saved at submission time.
+   *
+   * @generated from field: int64 memory_mib = 25;
+   */
+  memoryMib: bigint;
+
+  /**
+   * @generated from field: int64 cpu_millis = 26;
+   */
+  cpuMillis: bigint;
+
+  /**
+   * @generated from field: int64 max_run_duration_seconds = 27;
+   */
+  maxRunDurationSeconds: bigint;
 };
 
 /**
@@ -510,6 +541,150 @@ export const GetJobResponseSchema: GenMessage<GetJobResponse> = /*@__PURE__*/
   messageDesc(file_proto_jennah, 13);
 
 /**
+ * A single in-app notification produced from a job.terminal Pub/Sub event.
+ *
+ * @generated from message jennah.v1.Notification
+ */
+export type Notification = Message<"jennah.v1.Notification"> & {
+  /**
+   * Stable event ID from the Pub/Sub payload — used for deduplication.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string job_id = 2;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: string job_name = 3;
+   */
+  jobName: string;
+
+  /**
+   * final_status: COMPLETED | FAILED | CANCELLED
+   *
+   * @generated from field: string final_status = 4;
+   */
+  finalStatus: string;
+
+  /**
+   * SIMPLE | COMPLEX
+   *
+   * @generated from field: string service_tier = 5;
+   */
+  serviceTier: string;
+
+  /**
+   * CLOUD_RUN_JOB | CLOUD_BATCH
+   *
+   * @generated from field: string assigned_service = 6;
+   */
+  assignedService: string;
+
+  /**
+   * Unix timestamp (seconds) of when the terminal event occurred.
+   *
+   * @generated from field: int64 occurred_at = 7;
+   */
+  occurredAt: bigint;
+
+  /**
+   * @generated from field: string error_message = 8;
+   */
+  errorMessage: string;
+
+  /**
+   * @generated from field: bool is_read = 9;
+   */
+  isRead: boolean;
+};
+
+/**
+ * Describes the message jennah.v1.Notification.
+ * Use `create(NotificationSchema)` to create a new message.
+ */
+export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
+  messageDesc(file_proto_jennah, 14);
+
+/**
+ * @generated from message jennah.v1.ListNotificationsRequest
+ */
+export type ListNotificationsRequest = Message<"jennah.v1.ListNotificationsRequest"> & {
+  /**
+   * Maximum number of notifications to return (default 20).
+   *
+   * @generated from field: int32 limit = 1;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message jennah.v1.ListNotificationsRequest.
+ * Use `create(ListNotificationsRequestSchema)` to create a new message.
+ */
+export const ListNotificationsRequestSchema: GenMessage<ListNotificationsRequest> = /*@__PURE__*/
+  messageDesc(file_proto_jennah, 15);
+
+/**
+ * @generated from message jennah.v1.ListNotificationsResponse
+ */
+export type ListNotificationsResponse = Message<"jennah.v1.ListNotificationsResponse"> & {
+  /**
+   * @generated from field: repeated jennah.v1.Notification notifications = 1;
+   */
+  notifications: Notification[];
+
+  /**
+   * @generated from field: int32 unread_count = 2;
+   */
+  unreadCount: number;
+};
+
+/**
+ * Describes the message jennah.v1.ListNotificationsResponse.
+ * Use `create(ListNotificationsResponseSchema)` to create a new message.
+ */
+export const ListNotificationsResponseSchema: GenMessage<ListNotificationsResponse> = /*@__PURE__*/
+  messageDesc(file_proto_jennah, 16);
+
+/**
+ * @generated from message jennah.v1.AckNotificationRequest
+ */
+export type AckNotificationRequest = Message<"jennah.v1.AckNotificationRequest"> & {
+  /**
+   * @generated from field: string notification_id = 1;
+   */
+  notificationId: string;
+};
+
+/**
+ * Describes the message jennah.v1.AckNotificationRequest.
+ * Use `create(AckNotificationRequestSchema)` to create a new message.
+ */
+export const AckNotificationRequestSchema: GenMessage<AckNotificationRequest> = /*@__PURE__*/
+  messageDesc(file_proto_jennah, 17);
+
+/**
+ * @generated from message jennah.v1.AckNotificationResponse
+ */
+export type AckNotificationResponse = Message<"jennah.v1.AckNotificationResponse"> & {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+};
+
+/**
+ * Describes the message jennah.v1.AckNotificationResponse.
+ * Use `create(AckNotificationResponseSchema)` to create a new message.
+ */
+export const AckNotificationResponseSchema: GenMessage<AckNotificationResponse> = /*@__PURE__*/
+  messageDesc(file_proto_jennah, 18);
+
+/**
  * ComplexityLevel classifies a job by its resource/hardware requirements.
  * Used by the routing layer to select the appropriate GCP execution service.
  *
@@ -637,6 +812,26 @@ export const DeploymentService: GenService<{
     methodKind: "unary";
     input: typeof GetJobRequestSchema;
     output: typeof GetJobResponseSchema;
+  },
+  /**
+   * List in-app notifications for the current tenant (saved by Pub/Sub consumer).
+   *
+   * @generated from rpc jennah.v1.DeploymentService.ListNotifications
+   */
+  listNotifications: {
+    methodKind: "unary";
+    input: typeof ListNotificationsRequestSchema;
+    output: typeof ListNotificationsResponseSchema;
+  },
+  /**
+   * Mark a notification as read (ack).
+   *
+   * @generated from rpc jennah.v1.DeploymentService.AckNotification
+   */
+  ackNotification: {
+    methodKind: "unary";
+    input: typeof AckNotificationRequestSchema;
+    output: typeof AckNotificationResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_proto_jennah, 0);
