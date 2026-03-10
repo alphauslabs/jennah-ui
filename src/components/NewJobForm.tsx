@@ -28,6 +28,7 @@ interface EnvVar {
 // Maps UI preset IDs → API resource_profile strings expected by the Gateway.
 // UI "Heavy" → API "large", UI "GPU" → API "xlarge" (matching API doc spec)
 const PRESET_PROFILE_MAP: Record<string, string> = {
+  micro:  "micro",
   small:  "small",
   medium: "medium",
   heavy:  "large",
@@ -35,6 +36,7 @@ const PRESET_PROFILE_MAP: Record<string, string> = {
 };
 
 const PRESETS = [
+  { id: "micro",  label: "Micro",  desc: "0.5 vCPU · 512 MiB · 10 min max" },
   { id: "small",  label: "Small",  desc: "1 vCPU · 2 GiB · 30 min max" },
   { id: "medium", label: "Medium", desc: "2 vCPU · 4 GiB · 1 hr max" },
   { id: "heavy",  label: "Heavy",  desc: "4 vCPU · 8 GiB · 2 hr max" },
@@ -59,18 +61,19 @@ const DEFAULT_DWP_IMAGE_URI =
 // Resolved resource values for each preset (matches backend navigator package).
 // Used by the frontend classifier to predict routing tier before submission.
 const PRESET_RESOLVED: Record<string, { cpuMillis: number; memoryMib: number; defaultDurationSeconds: number }> = {
+  micro:  { cpuMillis: 500,   memoryMib: 512,   defaultDurationSeconds: 600   },
   small:  { cpuMillis: 1000,  memoryMib: 2048,  defaultDurationSeconds: 1800  },
   medium: { cpuMillis: 2000,  memoryMib: 4096,  defaultDurationSeconds: 3600  },
   large:  { cpuMillis: 4000,  memoryMib: 8192,  defaultDurationSeconds: 7200  },
   xlarge: { cpuMillis: 8000,  memoryMib: 16384, defaultDurationSeconds: 14400 },
 };
 
-// Backend thresholds (router package — two-tier system after MEDIUM/Cloud Tasks removal)
-// SIMPLE (≤ these values) → Cloud Run Jobs
-// COMPLEX (above these values OR explicit machine_type) → Cloud Batch
-const SIMPLE_MAX_CPU   = 4000;
-const SIMPLE_MAX_MEM   = 8192;
-const SIMPLE_MAX_DUR   = 3600;
+// Backend thresholds (router/classifier.go — two-tier system)
+// SIMPLE (ALL must be true): no machine_type, cpu ≤ 4000, memory ≤ 8192, duration ≤ 3600
+// COMPLEX (ANY ONE triggers): machine_type set, cpu > 4000, memory > 8192, duration > 3600
+const SIMPLE_MAX_CPU = 4000;  // mCPU (4 vCPU)
+const SIMPLE_MAX_MEM = 8192;  // MiB (8 GiB)
+const SIMPLE_MAX_DUR = 3600;  // seconds (1 hour)
 
 type RoutingTier = "SIMPLE" | "COMPLEX";
 interface RoutingDecision {
@@ -116,10 +119,10 @@ function classifyRouting(
     };
   }
 
-  // Exceeds SIMPLE thresholds → Cloud Batch
+  // Exceeds SIMPLE threshold → COMPLEX → Cloud Batch
   const reasons: string[] = [];
-  if (cpu > SIMPLE_MAX_CPU) reasons.push(`CPU ${cpu} mCPU > 4000`);
-  if (mem > SIMPLE_MAX_MEM) reasons.push(`memory ${mem} MiB > 8192`);
+  if (cpu > SIMPLE_MAX_CPU) reasons.push(`cpu_millis ${cpu} > 4000`);
+  if (mem > SIMPLE_MAX_MEM) reasons.push(`memory_mib ${mem} > 8192`);
   if (dur > SIMPLE_MAX_DUR) reasons.push(`duration ${dur}s > 3600`);
   return {
     tier: "COMPLEX",

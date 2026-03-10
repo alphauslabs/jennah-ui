@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { client } from '../client';
 import { create } from '@bufbuild/protobuf';
 import { GetCurrentTenantRequestSchema } from '../../gen/proto/jennah_pb';
-import type { GetCurrentTenantResponse } from '../../gen/proto/jennah_pb';
+import type { GetCurrentTenantRequest, GetCurrentTenantResponse } from '../../gen/proto/jennah_pb';
 
 export function useGetCurrentTenant() {
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export function useGetCurrentTenant() {
     try {
       // GetCurrentTenantRequest is empty — tenant resolved via auth headers server-side
       const request = create(GetCurrentTenantRequestSchema, {});
-      const response = await (client.getCurrentTenant as (request: typeof request) => Promise<GetCurrentTenantResponse>)(request);
+      const response = await (client.getCurrentTenant as (request: GetCurrentTenantRequest) => Promise<GetCurrentTenantResponse>)(request);
       setTenant(response);
       return response;
     } catch (err: any) {
