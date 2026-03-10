@@ -560,9 +560,9 @@ export default function DWPPage() {
                   { key: "BATCH_TASK_INDEX", desc: "Instance ID (0-based, auto-injected by GCP)", example: "0, 1, 2, 3" },
                   { key: "BATCH_TASK_COUNT", desc: "Total instances (auto-injected by GCP)", example: "4" },
                   { key: "INPUT_DATA_PATH", desc: "GCS path to shared input file", example: "gs://bucket/input/data.txt" },
-                  { key: "INPUT_DATA_SIZE", desc: "File size in bytes for range calculation", example: "86888890" },
+                  { key: "INPUT_DATA_SIZE", desc: "Optional file size in bytes; omitted values are auto-detected from GCS", example: "86888890" },
                   { key: "OUTPUT_BASE_PATH", desc: "GCS prefix for output files", example: "gs://bucket/output" },
-                  { key: "DISTRIBUTION_MODE", desc: "How data is split across instances", example: "BYTE_RANGE" },
+                  { key: "DISTRIBUTION_MODE", desc: "How data is split across instances", example: "BYTE_RANGE or RECORD" },
                   { key: "ENABLE_DISTRIBUTED_MODE", desc: "Enable distributed processing", example: "true" },
                 ].map((row) => (
                   <tr key={row.key}>

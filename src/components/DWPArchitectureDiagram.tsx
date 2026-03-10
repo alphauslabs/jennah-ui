@@ -86,6 +86,9 @@ export function DWPArchitectureDiagram({
             <p className="text-xs font-medium text-gray-700">Shared Input (read-only)</p>
             <p className="text-xs text-gray-500 truncate font-mono">{shortPath(inputPath)}</p>
             {inputDataSize > 0 && <p className="text-xs text-gray-400">{formatBytes(inputDataSize)} · ~{formatBytes(bytesPerInstance)}/instance</p>}
+            {inputDataSize === 0 && inputPath && (
+              <p className="text-xs text-gray-400">Input size auto-detected from GCS metadata at submit time.</p>
+            )}
           </div>
         </div>
 
