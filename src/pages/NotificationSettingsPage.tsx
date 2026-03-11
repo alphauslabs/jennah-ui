@@ -42,9 +42,9 @@ type TestState = "idle" | "testing" | "ok" | "fail" | "cors";
 function ConnectionBadge({ state }: { state: TestState }) {
   if (state === "idle")    return null;
   if (state === "testing") return <span className="text-xs text-gray-400">Testing…</span>;
-  if (state === "ok")      return <span className="text-xs text-green-600 font-medium">✅ Connection healthy</span>;
-  if (state === "cors")    return <span className="text-xs text-yellow-600 font-medium">⚠️ CORS blocked in browser — test from your backend instead</span>;
-  return <span className="text-xs text-red-600 font-medium">❌ Connection failed — check URL and try again</span>;
+  if (state === "ok")      return <span className="text-xs text-green-600 font-medium">Connection healthy</span>;
+  if (state === "cors")    return <span className="text-xs text-yellow-600 font-medium">CORS blocked in browser — test from your backend instead</span>;
+  return <span className="text-xs text-red-600 font-medium">Connection failed — check URL and try again</span>;
 }
 
 export default function NotificationSettingsPage() {

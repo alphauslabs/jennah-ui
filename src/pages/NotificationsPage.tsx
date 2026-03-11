@@ -6,10 +6,10 @@ import type { ProtoNotification } from "@/context/NotificationContext";
 
 type StatusFilter = "all" | "unread" | "COMPLETED" | "FAILED" | "CANCELLED";
 
-const STATUS_CONFIG: Record<string, { label: string; badgeClass: string; icon: string }> = {
-  COMPLETED: { label: "Completed", badgeClass: "bg-green-100 text-green-700", icon: "✅" },
-  FAILED:    { label: "Failed",    badgeClass: "bg-red-100 text-red-700",     icon: "❌" },
-  CANCELLED: { label: "Cancelled", badgeClass: "bg-gray-100 text-gray-600",   icon: "⏸" },
+const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+  COMPLETED: { label: "Completed", badgeClass: "bg-green-100 text-green-700"},
+  FAILED:    { label: "Failed",    badgeClass: "bg-red-100 text-red-700"},
+  CANCELLED: { label: "Cancelled", badgeClass: "bg-gray-100 text-gray-600"},
 };
 
 function assignedServiceLabel(s: string) {
@@ -26,7 +26,7 @@ function NotificationRow({
   onMarkRead: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = STATUS_CONFIG[n.finalStatus] ?? { label: n.finalStatus, badgeClass: "bg-gray-100 text-gray-600", icon: "🔔" };
+  const cfg = STATUS_CONFIG[n.finalStatus] ?? { label: n.finalStatus, badgeClass: "bg-gray-100 text-gray-600" };
   const occurredDate = n.occurredAt ? new Date(Number(n.occurredAt) * 1000) : null;
 
   const handleClick = () => {
@@ -53,7 +53,7 @@ function NotificationRow({
               {n.jobName || n.jobId.slice(0, 8) + "…"}
             </span>
             <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${cfg.badgeClass}`}>
-              {cfg.icon} {cfg.label}
+              {cfg.label}
             </span>
           </div>
 

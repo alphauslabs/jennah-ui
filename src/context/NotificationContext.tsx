@@ -15,6 +15,21 @@ interface NotificationContextValue {
   lastError: string | null;
 }
 
+const DISMISSED_KEY = "jennah_dismissed_notifications";
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(ids: Set<string>) {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+}
+
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
 // Full refresh every 30 s — keeps the list consistent with server state.
@@ -29,17 +44,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { fetchNotifications, loading } = useListNotifications();
   const { ackNotification } = useAckNotification();
   const latestTimestampRef = useRef<bigint>(0n);
+  const dismissedRef = useRef<Set<string>>(loadDismissed());
 
-  // Merge incoming items — deduplicate by id, new items go to the top.
+  const filterDismissed = (items: ProtoNotification[]) =>
+    items.filter((n) => !dismissedRef.current.has(n.id));
+
   const mergeNotifications = useCallback((incoming: ProtoNotification[]) => {
-    if (!incoming.length) return;
+    const fresh = filterDismissed(incoming);
+    if (!fresh.length) return;
     setNotifications((prev) => {
       const existingById = new Map(prev.map((n) => [n.id, n]));
-      const fresh = incoming.filter((n) => !existingById.has(n.id));
-      return fresh.length ? [...fresh, ...prev] : prev;
+      const newItems = fresh.filter((n) => !existingById.has(n.id));
+      return newItems.length ? [...newItems, ...prev] : prev;
     });
-    // Track the newest timestamp for delta polls
-    const max = incoming.reduce((m, n) => (n.occurredAt > m ? n.occurredAt : m), 0n);
+    const max = fresh.reduce((m, n) => (n.occurredAt > m ? n.occurredAt : m), 0n);
     if (max > latestTimestampRef.current) latestTimestampRef.current = max;
   }, []);
 
@@ -52,9 +70,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       return;
     }
     setLastError(null);
-    const items = res.notifications ?? [];
+    const items = filterDismissed(res.notifications ?? []);
     setNotifications(items);
-    setUnreadCount(res.unreadCount ?? 0);
+    setUnreadCount(items.filter((n) => !n.isRead).length);
     if (items.length) {
       latestTimestampRef.current = items.reduce(
         (m, n) => (n.occurredAt > m ? n.occurredAt : m), 0n,
@@ -104,10 +122,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     await Promise.all(unread.map((n) => ackNotification(n.id)));
   }, [notifications, ackNotification]);
 
-  const clearAll = useCallback(() => {
+  const clearAll = useCallback(async () => {
+    // Ack all unread on the server so they're marked read
+    const unread = notifications.filter((n) => !n.isRead);
+    await Promise.all(unread.map((n) => ackNotification(n.id)));
+    // Persist all current IDs as dismissed — survives page refresh
+    const allIds = notifications.map((n) => n.id);
+    allIds.forEach((id) => dismissedRef.current.add(id));
+    saveDismissed(dismissedRef.current);
     setNotifications([]);
     setUnreadCount(0);
-  }, []);
+  }, [notifications, ackNotification]);
 
   return (
     <NotificationContext.Provider

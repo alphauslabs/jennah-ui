@@ -142,10 +142,10 @@ export function JobsCard({ job, onCancelled, onDeleted }: JobsCardProps & { onCa
   return (
     <Card className="w-full hover:shadow-md transition-all duration-300 border border-gray-100 bg-white overflow-hidden rounded-2xl">
       <CardHeader className="pt-8 pb-4 px-8">
-        {/* Workload Name — falls back to image name until backend adds name field */}
+        {/* Job name */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-black">
-            {job.workloadName || name}
+            {job.name || job.workloadName || name}
           </h3>
         </div>
 
