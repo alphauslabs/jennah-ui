@@ -5,11 +5,11 @@ import { useState, useRef, useEffect } from "react";
 import { logoutOAuth } from "@/api/auth";
 import { useNotifications } from "@/context/NotificationContext";
 
-function statusIcon(status: string) {
-  if (status === "COMPLETED") return "COMPLETED";
-  if (status === "FAILED")    return "FAILED";
-  if (status === "CANCELLED") return "CANCELLED";
-  return "OTHER";
+function statusBadgeClass(status: string) {
+  if (status === "COMPLETED") return "text-green-700";
+  if (status === "FAILED")    return "text-red-600";
+  if (status === "CANCELLED") return "text-gray-500";
+  return "text-gray-500";
 }
 
 function NotificationBell() {
@@ -66,13 +66,13 @@ function NotificationBell() {
                   className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? "bg-blue-50/40" : ""}`}
                 >
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-sm">{statusIcon(n.finalStatus)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-800 truncate">
                         {n.jobName || n.jobId.slice(0, 8) + "…"}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {n.finalStatus} · {n.serviceTier} · {n.assignedService}
+                      <p className={`text-xs font-medium mt-0.5 ${statusBadgeClass(n.finalStatus)}`}>
+                        {n.finalStatus}
+                        {n.serviceTier ? ` · ${n.serviceTier}` : ""}
                       </p>
                       {n.errorMessage && (
                         <p className="text-xs text-red-500 mt-0.5 truncate">{n.errorMessage}</p>
