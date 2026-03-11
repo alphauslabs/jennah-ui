@@ -39,16 +39,19 @@ export function SearchBar({
         onFilterChange={onFilterChange || (() => {})}
         availableProjects={availableProjects}
       />
-      <div className="h-12 flex items-center justify-center rounded-full px-6 bg-black hover:bg-gray-900 text-white font-normal text-sm transition-colors">
+      <Button
+        asChild
+        size="sm"
+        className="h-12 rounded-full px-6 bg-black hover:bg-gray-900 text-white font-normal text-sm"
+      >
         <Link
           to={pathname === "/projects" ? "/projects/create" : "/jobs/create"}
+          reloadDocument
         >
-          <Button size="sm" className="bg-transparent">
-            <AddIcon className="w-4 h-4" />
-            New {pathname === "/projects" ? "Project" : "Job"}
-          </Button>
+          <AddIcon className="w-4 h-4" />
+          New {pathname === "/projects" ? "Project" : "Job"}
         </Link>
-      </div>
+      </Button>
     </div>
   );
 }

@@ -22,6 +22,28 @@ interface DwpJobContext {
   errorMessage: string;
 }
 
+function buildGCSObjectURL(basePath: string, objectName: string): string | null {
+  const trimmedBasePath = basePath.trim();
+  if (!trimmedBasePath.startsWith("gs://")) {
+    return null;
+  }
+
+  const withoutScheme = trimmedBasePath.slice(5).replace(/\/+$/, "");
+  const slashIndex = withoutScheme.indexOf("/");
+  if (slashIndex <= 0 || slashIndex === withoutScheme.length - 1) {
+    return null;
+  }
+
+  const bucket = withoutScheme.slice(0, slashIndex);
+  const prefix = withoutScheme.slice(slashIndex + 1);
+  const encodedObjectPath = `${prefix}/${objectName}`
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/");
+
+  return `https://storage.cloud.google.com/${bucket}/${encodedObjectPath}`;
+}
+
 function statusToPhase(status: string): number {
   switch (status) {
     case "PENDING":   return 0;
@@ -241,14 +263,34 @@ function InstanceGrid({ job }: { job: DwpJobContext }) {
             <span className="text-xs text-[#137333] font-mono ml-auto">{job.outputPath}/</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {instances.map((idx) => (
-              <span
-                key={idx}
-                className="text-xs font-mono text-[#137333] bg-white border border-[#ceead6] px-2.5 py-1 rounded"
-              >
-                instance-{idx}.json
-              </span>
-            ))}
+            {instances.map((idx) => {
+              const fileName = `instance-${idx}.json`;
+              const fileURL = buildGCSObjectURL(job.outputPath, fileName);
+
+              if (!fileURL) {
+                return (
+                  <span
+                    key={idx}
+                    className="text-xs font-mono text-[#137333] bg-white border border-[#ceead6] px-2.5 py-1 rounded"
+                  >
+                    {fileName}
+                  </span>
+                );
+              }
+
+              return (
+                <a
+                  key={idx}
+                  href={fileURL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-mono text-[#137333] bg-white border border-[#ceead6] px-2.5 py-1 rounded hover:bg-[#f5fbf6] hover:border-[#137333] hover:underline"
+                  title={fileURL}
+                >
+                  {fileName}
+                </a>
+              );
+            })}
           </div>
         </div>
       )}
