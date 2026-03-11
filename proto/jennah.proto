@@ -196,11 +196,23 @@ message Notification {
   int64 occurred_at = 7;
   string error_message = 8;
   bool is_read = 9;
+  // GCP resource path for debugging (e.g. Cloud Batch job path or Cloud Run execution path).
+  string cloud_resource_path = 10;
+  // Status of the job immediately before this terminal transition.
+  string previous_status = 11;
+  // Tenant that owns this notification (for tenant-safe filtering).
+  string tenant_id = 12;
+  // Email of the user who submitted the job.
+  string user_email = 13;
 }
 
 message ListNotificationsRequest {
   // Maximum number of notifications to return (default 20).
   int32 limit = 1;
+  // Only return notifications with occurred_at strictly newer than this Unix timestamp (seconds).
+  // Pass 0 (or omit) to return the most recent `limit` notifications regardless of time.
+  // Enables efficient incremental / delta fetches.
+  int64 since_timestamp = 2;
 }
 
 message ListNotificationsResponse {

@@ -1,16 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import Jobs from "./pages/JobsPage";
 import CreateJobPage from "./pages/CreateJobPage";
 import EditJobPage from "./pages/EditJobsPage";
 import ViewJob from "./pages/ViewJobsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
 function App() {
   console.log("App component rendering");
   return (
     <AuthProvider>
+      <NotificationProvider>
       <Router>
         <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
           <Routes>
@@ -59,9 +63,30 @@ function App() {
               }
             />
 
+            {/* Notification center */}
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Notification settings */}
+            <Route
+              path="/settings/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
           </Routes>
         </div>
       </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
