@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CancelJobRequest, CancelJobResponse, DeleteJobRequest, DeleteJobResponse, GetCurrentTenantRequest, GetCurrentTenantResponse, GetJobRequest, GetJobResponse, ListJobsRequest, ListJobsResponse, SubmitJobRequest, SubmitJobResponse } from "./jennah_pb.js";
+import { AckNotificationRequest, AckNotificationResponse, CancelJobRequest, CancelJobResponse, DeleteJobRequest, DeleteJobResponse, GetCurrentTenantRequest, GetCurrentTenantResponse, GetJobRequest, GetJobResponse, ListJobsRequest, ListJobsResponse, ListNotificationsRequest, ListNotificationsResponse, SubmitJobRequest, SubmitJobResponse } from "./jennah_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -78,6 +78,28 @@ export const DeploymentService = {
       name: "GetJob",
       I: GetJobRequest,
       O: GetJobResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List in-app notifications for the current tenant (saved by Pub/Sub consumer).
+     *
+     * @generated from rpc jennah.v1.DeploymentService.ListNotifications
+     */
+    listNotifications: {
+      name: "ListNotifications",
+      I: ListNotificationsRequest,
+      O: ListNotificationsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mark a notification as read (ack).
+     *
+     * @generated from rpc jennah.v1.DeploymentService.AckNotification
+     */
+    ackNotification: {
+      name: "AckNotification",
+      I: AckNotificationRequest,
+      O: AckNotificationResponse,
       kind: MethodKind.Unary,
     },
   }
