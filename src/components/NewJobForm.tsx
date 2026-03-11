@@ -172,6 +172,104 @@ function setEnvVarIfBlank(envVars: Record<string, string>, key: string, value: s
   }
 }
 
+/**
+ * Parses a raw command string into a string array.
+ *
+ * Accepts two formats:
+ *   1. JSON array  — e.g. ["sh", "-c", "echo hello"]   (pasted from curl/docs)
+ *   2. Shell string — e.g.  sh -c "echo hello"            (typed or pasted)
+ *
+ * In shell-string mode, tokens are split on whitespace but words grouped
+ * inside single or double quotes are kept as one token (quotes stripped).
+ */
+function parseCommandTokens(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.every((t) => typeof t === "string")) {
+        return parsed;
+      }
+    } catch {
+      // fall through to shell-string parser
+    }
+  }
+  const tokens: string[] = [];
+  const re = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(trimmed)) !== null) {
+    tokens.push(m[1] ?? m[2] ?? m[0]);
+  }
+  return tokens;
+}
+
+// ─── curl / JSON import ──────────────────────────────────────────────────────
+
+interface CurlParseResult {
+  name?: string;
+  imageUri?: string;
+  commands?: string[];
+  envVars?: Array<{ key: string; value: string }>;
+  maxRetries?: number;
+  fieldsImported: string[];
+}
+
+/**
+ * Accepts a full `curl ... -d '{...}'` command or a bare JSON object and
+ * extracts the job fields it recognises.
+ */
+function parseCurlOrJson(input: string): CurlParseResult | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  let body: Record<string, unknown> | null = null;
+
+  if (trimmed.startsWith("{")) {
+    // Bare JSON body
+    try { body = JSON.parse(trimmed); } catch { return null; }
+  } else if (trimmed.toLowerCase().startsWith("curl")) {
+    // Flatten bash line-continuations, then extract the -d payload
+    const flat = trimmed.replace(/\\\n[ \t]*/g, " ");
+    const sq = flat.match(/-d\s+'([\s\S]*?)'\s*(?:$|\s+-[A-Za-z])/);
+    const dq = flat.match(/-d\s+"([\s\S]*?)"\s*(?:$|\s+-[A-Za-z])/);
+    const raw = sq?.[1] ?? dq?.[1];
+    if (!raw) return null;
+    try { body = JSON.parse(raw); } catch { return null; }
+  } else {
+    return null;
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+
+  const result: CurlParseResult = { fieldsImported: [] };
+
+  if (typeof body.name === "string") {
+    result.name = body.name;
+    result.fieldsImported.push("Job name");
+  }
+  if (typeof body.image_uri === "string") {
+    result.imageUri = body.image_uri;
+    result.fieldsImported.push("Container image");
+  }
+  const cmdField = body.command ?? body.commands ?? body.cmd;
+  if (Array.isArray(cmdField) && cmdField.every((c) => typeof c === "string")) {
+    result.commands = cmdField as string[];
+    result.fieldsImported.push("Command");
+  }
+  if (body.env_vars && typeof body.env_vars === "object" && !Array.isArray(body.env_vars)) {
+    result.envVars = Object.entries(body.env_vars as Record<string, unknown>).map(
+      ([key, value]) => ({ key, value: String(value) })
+    );
+    result.fieldsImported.push(`Env vars (${result.envVars.length})`);
+  }
+  if (body.max_retries !== undefined) {
+    const n = Number(body.max_retries);
+    if (!isNaN(n)) { result.maxRetries = n; result.fieldsImported.push("Max retries"); }
+  }
+
+  return result.fieldsImported.length > 0 ? result : null;
+}
+
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
 const TIER_STYLES: Record<RoutingTier, { bg: string; border: string; badge: string; dot: string }> = {
@@ -234,6 +332,7 @@ export function NewJobForm() {
   // Basic Info
   const [jobName, setJobName] = useState("");
   const [containerImage, setContainerImage] = useState("");
+  const [commandsRaw, setCommandsRaw] = useState("");
 
   // Compute
   const [computeMethod, setComputeMethod] = useState<ComputeMethod>("quick-preset");
@@ -261,6 +360,32 @@ export function NewJobForm() {
   const [dwpDistributionMode, setDwpDistributionMode] = useState("RECORD");
   const [dwpInputPath, setDwpInputPath] = useState("");
   const [dwpOutputPath, setDwpOutputPath] = useState("");
+
+  // Curl import
+  const [curlInput, setCurlInput] = useState("");
+  const [showCurlImport, setShowCurlImport] = useState(false);
+  const [curlImportFields, setCurlImportFields] = useState<string[]>([]);
+
+  function handleCurlImport(raw: string) {
+    setCurlInput(raw);
+    const result = parseCurlOrJson(raw);
+    if (!result) { setCurlImportFields([]); return; }
+    if (result.name) setJobName(result.name);
+    if (result.imageUri) setContainerImage(result.imageUri);
+    if (result.commands) setCommandsRaw(JSON.stringify(result.commands));
+    if (result.envVars) {
+      setEnvVars(
+        result.envVars.map((ev) => ({
+          id: crypto.randomUUID(),
+          key: ev.key,
+          value: ev.value,
+          sensitive: false,
+        }))
+      );
+    }
+    if (result.maxRetries !== undefined) setMaxRetries(result.maxRetries);
+    setCurlImportFields(result.fieldsImported);
+  }
 
   // Success state — shown after submit before navigating away
   const [successInfo, setSuccessInfo] = useState<{
@@ -358,6 +483,7 @@ export function NewJobForm() {
           envVars: envVarsMap,
           serviceAccount: serviceAccount || "",
           resourceProfile: PRESET_PROFILE_MAP[preset] ?? "medium",
+          commands: commandsRaw.trim() ? parseCommandTokens(commandsRaw) : [],
           resourceOverride: create(ResourceOverrideSchema, {
             maxRunDurationSeconds: BigInt(timeoutSeconds),
             cpuMillis: BigInt(0),
@@ -373,6 +499,7 @@ export function NewJobForm() {
           name: jobName,
           envVars: envVarsMap,
           serviceAccount: serviceAccount || "",
+          commands: commandsRaw.trim() ? parseCommandTokens(commandsRaw) : [],
           resourceOverride: create(ResourceOverrideSchema, {
             cpuMillis: BigInt(resources.cpuMillis),
             memoryMib: BigInt(resources.memoryMib),
@@ -414,6 +541,66 @@ export function NewJobForm() {
 
   return (
     <div className="space-y-4">
+
+      {/* ── 0. Import from curl ── */}
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-left hover:bg-muted/40 transition-colors"
+          onClick={() => setShowCurlImport((v) => !v)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs bg-gray-900 text-green-400 px-2 py-0.5 rounded">$</span>
+            <span>Import from curl</span>
+            <span className="text-xs text-muted-foreground font-normal">— paste a curl command or JSON body to auto-fill the form</span>
+          </div>
+          {showCurlImport ? <ChevronUpIcon fontSize="small" /> : <ChevronDownIcon fontSize="small" />}
+        </button>
+
+        {showCurlImport && (
+          <div className="border-t px-4 py-4 space-y-3">
+            <div className="rounded-md overflow-hidden border border-gray-700 bg-gray-900">
+              <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-700 bg-gray-800">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
+                <span className="ml-2 text-xs text-gray-400 font-mono">paste curl or JSON</span>
+              </div>
+              <textarea
+                rows={8}
+                className="w-full resize-y bg-transparent text-green-400 font-mono text-xs leading-relaxed placeholder:text-green-900 focus:outline-none px-4 py-3"
+                placeholder={`curl -X POST https://... \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "name": "my-job",\n    "image_uri": "busybox:latest",\n    "command": ["sh", "-c", "echo hello"],\n    "env_vars": { "KEY": "value" }\n  }'`}
+                value={curlInput}
+                onChange={(e) => handleCurlImport(e.target.value)}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+            </div>
+
+            {curlImportFields.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-green-700 font-medium">Imported:</span>
+                {curlImportFields.map((f) => (
+                  <span key={f} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                    {f}
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+                  onClick={() => { setCurlInput(""); setCurlImportFields([]); }}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+            {curlInput.trim() && curlImportFields.length === 0 && (
+              <p className="text-xs text-red-500">Could not parse — make sure it's a valid curl command with a JSON body, or a bare JSON object.</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── 1. Basic Information (always visible) ── */}
       <Section
@@ -462,6 +649,34 @@ export function NewJobForm() {
             </p>
           </div>
         )}
+
+        {/* ── Commands ── */}
+        <div className="grid gap-2">
+          <Label htmlFor="commands-input">Container Command</Label>
+          <textarea
+            id="commands-input"
+            rows={2}
+            className="w-full resize-y font-mono text-sm border rounded-md px-3 py-2 bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder={'sh -c "echo hello && sleep 10"  or  ["sh", "-c", "echo hello"]'}
+            value={commandsRaw}
+            onChange={(e) => setCommandsRaw(e.target.value)}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+          />
+          {commandsRaw.trim() && (
+            <div className="flex flex-wrap gap-1">
+              {parseCommandTokens(commandsRaw).map((token, i) => (
+                <span key={i} className="bg-muted text-muted-foreground font-mono text-xs px-1.5 py-0.5 rounded border">
+                  [{i}] {token}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Shell string or JSON array. Leave blank to use the image's default entrypoint.
+          </p>
+        </div>
       </Section>
 
       {/* ── 2. Compute Resources (always visible) ── */}

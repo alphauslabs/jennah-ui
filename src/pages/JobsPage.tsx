@@ -63,7 +63,7 @@ export default function Jobs() {
       id: job.jobId,
       tenantId: job.tenantId || "",
       imageUri: job.imageUri || "",
-      workloadName: job.imageUri || job.jobId,
+      workloadName: job.name || job.imageUri || job.jobId,
       projectName: job.tenantId || "",
       status: job.status || "PENDING",
       createdAt: job.createdAt || "",
